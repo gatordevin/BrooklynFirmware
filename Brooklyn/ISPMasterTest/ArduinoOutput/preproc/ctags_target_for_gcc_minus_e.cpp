@@ -1,6 +1,13 @@
 # 1 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 # 2 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino" 2
 # 13 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+uint8_t header;
+uint8_t cmd;
+uint8_t datalen;
+uint8_t data[10];
+uint8_t ck1;
+uint8_t ck2;
+
 void LED(uint8_t color){
     switch (color){
         case 1:
@@ -26,14 +33,31 @@ void LED(uint8_t color){
     }
 }
 
-void SPISend(uint8_t SSpin, uint8_t data){
+bool calcChecksum(){
+    int packetSum = 0;
+    packetSum += header;
+    packetSum += cmd;
+    packetSum += datalen;
+    for(int i=0;i<datalen;i++){
+        packetSum += data[i];
+    }
+    if(floor(packetSum / 256) == ck1){
+        if(packetSum % 256 == ck2){
+            return true;
+        }
+    }
+    return false;
+}
+
+uint8_t SPISend(uint8_t SSpin, uint8_t data){
     digitalWrite(SSpin, 0x0);
     uint8_t resp = SPI.transfer(data);
     Serial.print(resp);
     digitalWrite(SSpin, 0x1);
+    return resp;
 }
 
-void SPISendpacket(uint8_t SSpin, uint8_t data[]){
+bool SPISendpacket(uint8_t SSpin, uint8_t data[]){
     int packetSum = 0;
     SPISend(SSpin,data[0]);
     packetSum+=data[0];
@@ -45,10 +69,26 @@ void SPISendpacket(uint8_t SSpin, uint8_t data[]){
         packetSum+=data[3+i];
         SPISend(SSpin,data[3+i]);
     }
-    uint8_t ck1 = floor(packetSum / 256);
-    uint8_t ck2 = packetSum % 256;
+    ck1 = floor(packetSum / 256);
+    ck2 = packetSum % 256;
     SPISend(SSpin, ck1);
     SPISend(SSpin, ck2);
+    delayMicroseconds(200);
+    header = SPISend(SSpin,0);
+    if(header==255){
+        cmd = SPISend(SSpin,0);
+        datalen = SPISend(SSpin,0);
+        for(int i=0;i<datalen;i++){
+            data[i] = SPISend(SSpin,0);
+            packetSum += data[i];
+        }
+        ck1 = SPISend(SSpin,0);
+        ck2 = SPISend(SSpin,0);
+        if(calcChecksum){
+            return true;
+        }
+    return false;
+    }
 }
 
 void setup(){
@@ -59,11 +99,13 @@ void setup(){
     pinMode(A1, 0x1);
     digitalWrite(A1, 0x1);
     SPI.begin ();
+    LED(1);
 }
 
 void loop(void){
     uint8_t data[] = {255,0,0};
-    SPISendpacket(A1,data);
-    //SPISend(SS,255);
-    delay(500);
+    if(SPISendpacket(A1,data)){
+        LED(3);
+    }
+    delay(100);
 }
