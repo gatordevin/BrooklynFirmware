@@ -10,7 +10,18 @@
 #define green_pin A3
 
 volatile uint8_t buffer[100];
-volatile int i = 0;
+volatile int idx = 0;
+volatile int ridx = 0;
+
+uint8_t header;
+uint8_t cmd;
+uint8_t datalen;
+uint8_t data[10];
+uint8_t ck1;
+uint8_t ck2;
+
+#define CID_GETSPEED    0x00  // GET MOTOR SPEED
+
 void LED(uint8_t color){
     switch (color){
         case RED:
@@ -38,44 +49,39 @@ void LED(uint8_t color){
 
 ISR (SPI_STC_vect)
 {
-    buffer[i] = SPDR;
-    i+=1;     
-}
-
-bool checkSumCalc(int packetSum){
-  uint8_t ck1 = floor(packetSum / 256);
-  if(ck1==buffer[3]){
-    uint8_t ck2 = packetSum % 256;
-    if(ck2==buffer[4]){
-      return true;
-    }else{
-      return false;
+    buffer[idx] = SPDR;
+    if(idx==99){
+        idx=0;
     }
-  }else{
-    return false;
-  }
-  
+    idx+=1;
 }
 
-void checkpacket(uint8_t buff[]){
+uint8_t readData(){
+    while(idx==ridx){}
+    uint8_t data = buffer[ridx];
+    if(ridx==99){
+        ridx=0;
+    }
+    ridx+=1;
+    return(data);
+}
+
+bool calcChecksum(){
     int packetSum = 0;
-    uint8_t header = buff[0];
-    uint8_t cmd = buff[1];
-    uint8_t dataLength = buff[2];
-    packetSum+=header;
-    packetSum+=cmd;
-    packetSum+=dataLength;
-    if(header == 255){
-        switch (cmd){
-            case 7:
-                if(checkSumCalc(packetSum)){
-                    SPDR=20;
-                }
-                break;
+    packetSum += header;
+    packetSum += cmd;
+    packetSum += datalen;
+    for(int i=0;i<datalen;i++){
+        packetSum += data[i];
+    }
+    if(floor(packetSum / 256) == ck1){
+        if(packetSum % 256 == ck2){
+            return true;
         }
     }
-    i=0;
+    return false;
 }
+
 void setup(){
     pinMode(red_pin, OUTPUT);
     pinMode(blue_pin, OUTPUT);
@@ -87,6 +93,25 @@ void setup(){
 }
 
 void loop(void){
-    checkpacket(buffer);
-    LED(RED);
+    header = readData();
+    switch(header){
+        case (255):
+            cmd = readData();
+            datalen = readData();
+            for(int i=0;i<datalen;i++){
+                data[i] = readData();
+            }
+            ck1 = readData();
+            ck2 = readData();
+            if(calcChecksum()){
+                switch(cmd){
+                    case CID_GETSPEED:
+                        LED(GREEN);
+                        break;
+                }
+            }else{
+                LED(RED);
+            }
+            break;
+    }
 }

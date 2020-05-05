@@ -15,12 +15,12 @@
 #line 13 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 void LED(uint8_t color);
 #line 38 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
-uint8_t SPISend(uint8_t SSpin, uint8_t data);
-#line 47 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
-uint8_t SPISendPacket(uint8_t SSpin, uint8_t data[], int arraySize);
-#line 58 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+void SPISend(uint8_t SSpin, uint8_t data);
+#line 45 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+void SPISendpacket(uint8_t SSpin, uint8_t data[]);
+#line 63 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 void setup();
-#line 68 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+#line 73 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 void loop(void);
 #line 13 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 void LED(uint8_t color){
@@ -48,24 +48,29 @@ void LED(uint8_t color){
     }
 }
 
-uint8_t SPISend(uint8_t SSpin, uint8_t data){
+void SPISend(uint8_t SSpin, uint8_t data){
     digitalWrite(SSpin, LOW);
-    SPI.transfer(data);
-    delayMicroseconds(100);
     uint8_t resp = SPI.transfer(data);
+    Serial.print(resp);
     digitalWrite(SSpin, HIGH);
-    return resp;
 }
 
-uint8_t SPISendPacket(uint8_t SSpin, uint8_t data[], int arraySize){
-    digitalWrite(SSpin, LOW);
-    for(int i=0; i < arraySize; i++){
-        SPI.transfer(data[i]);
+void SPISendpacket(uint8_t SSpin, uint8_t data[]){
+    int packetSum = 0;
+    SPISend(SSpin,data[0]);
+    packetSum+=data[0];
+    SPISend(SSpin,data[1]);
+    packetSum+=data[1];
+    SPISend(SSpin,data[2]);
+    packetSum+=data[2];
+    for(int i=0;i<data[2];i++){
+        packetSum+=data[3+i];
+        SPISend(SSpin,data[3+i]);
     }
-    delayMicroseconds(200);
-    uint8_t resp = SPI.transfer(0);
-    digitalWrite(SSpin, HIGH);
-    return resp;
+    uint8_t ck1 = floor(packetSum / 256);
+    uint8_t ck2 = packetSum % 256;
+    SPISend(SSpin, ck1);
+    SPISend(SSpin, ck2);
 }
 
 void setup(){
@@ -79,12 +84,8 @@ void setup(){
 }
 
 void loop(void){
-    uint8_t data[5];
-    data[0] = 255; //Header
-    data[1] = 7; //Command
-    data[2] = 0; //Data Length
-    int packetSum = 262;
-    data[3] = floor(packetSum / 256);
-    data[4] = packetSum % 256;
-    SPISendPacket(SS,data,5);
+    uint8_t data[] = {255,0,0};
+    SPISendpacket(SS,data);
+    //SPISend(SS,255);
+    delay(500);
 }
