@@ -1,0 +1,7 @@
+{
+    "programmer": "AVR ISP",
+    "board": "arduino:avr:leonardo",
+    "port": "/dev/ttyACM0",
+    "output": "./ArduinoOutput",
+    "sketch": "ISPMasterTest.ino"
+}
