@@ -18,20 +18,29 @@ uint8_t datalen;
 uint8_t data[10];
 uint8_t ck1;
 uint8_t ck2;
+uint8_t id;
 
-#line 20 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+#define RID_PACKETRROR 0 //PACKET CHECKSUM ERROR
+#define RID_EMPTYREPLY 1 //SUCCESS EMPTY RID_EMPTYREPLY
+#define RID_ENCODERSPEED 2 //SUCCESS RETURN ENCODER SPEED
+
+#line 25 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 void LED(uint8_t color);
-#line 45 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+#line 50 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 bool calcChecksum();
-#line 61 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+#line 67 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 uint8_t SPISend(uint8_t SSpin, uint8_t data);
-#line 69 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
-bool SPISendpacket(uint8_t SSpin, uint8_t data[]);
-#line 103 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+#line 75 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+bool receivePacket(uint8_t SSpin);
+#line 92 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+uint8_t SPISendpacket(uint8_t SSpin, uint8_t data[]);
+#line 115 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+void handleResponse();
+#line 119 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 void setup();
-#line 114 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+#line 130 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 void loop(void);
-#line 20 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
+#line 25 "/home/techgarage/BrooklynFirmware/Brooklyn/ISPMasterTest/ISPMasterTest.ino"
 void LED(uint8_t color){
     switch (color){
         case RED:
@@ -60,6 +69,7 @@ void LED(uint8_t color){
 bool calcChecksum(){
     int packetSum = 0;
     packetSum += header;
+    packetSum += id;
     packetSum += cmd;
     packetSum += datalen;
     for(int i=0;i<datalen;i++){
@@ -81,7 +91,24 @@ uint8_t SPISend(uint8_t SSpin, uint8_t data){
     return resp;
 }
 
-bool SPISendpacket(uint8_t SSpin, uint8_t data[]){
+bool receivePacket(uint8_t SSpin){
+    header = SPISend(SSpin,0);
+    if(header==255){
+        cmd = SPISend(SSpin,0);
+        datalen = SPISend(SSpin,0);
+        for(int i=0;i<datalen;i++){
+            data[i] = SPISend(SSpin,0);
+        }
+        ck1 = SPISend(SSpin,0);
+        ck2 = SPISend(SSpin,0);
+        if(calcChecksum()){
+            return true;
+        }
+    }
+    return false;
+}
+
+uint8_t SPISendpacket(uint8_t SSpin, uint8_t data[]){
     int packetSum = 0;
     SPISend(SSpin,data[0]);
     packetSum+=data[0];
@@ -98,25 +125,18 @@ bool SPISendpacket(uint8_t SSpin, uint8_t data[]){
     SPISend(SSpin, ck1);
     SPISend(SSpin, ck2);
     delayMicroseconds(200);
-    header = SPISend(SSpin,0);
-    if(header==255){
-        cmd = SPISend(SSpin,0);
-        datalen = SPISend(SSpin,0);
-        for(int i=0;i<datalen;i++){
-            data[i] = SPISend(SSpin,0);
-            packetSum += data[i];
-        }
-        ck1 = SPISend(SSpin,0);
-        ck2 = SPISend(SSpin,0);
-        if(calcChecksum){
-            return true;
-        }
-    return false;
+
+    if(receivePacket(SSpin)){
+        LED(BLUE);
     }
 }
 
+void handleResponse(){
+
+}
+
 void setup(){
-    Serial.begin(9600);
+    Serial.begin(1000000);
     pinMode(red_pin, OUTPUT);
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
@@ -127,9 +147,24 @@ void setup(){
 }
 
 void loop(void){
-    uint8_t data[] = {255,0,0};
-    if(SPISendpacket(SS,data)){
-        LED(GREEN);
+    header = Serial.read();
+    if(header==255){
+        id = Serial.read();
+        cmd = Serial.read();
+        datalen = Serial.read();
+        for(int i=0;i<datalen;i++){
+            data[i] = Serial.read();
+        }
+        ck1 = Serial.read();
+        ck2 = Serial.read();
+        if(calcChecksum()){
+            LED(GREEN);
+        }
     }
-    delay(100);
+    
+
+    // if(SPISendpacket(SS,data2)==2){
+    //     LED(GREEN);
+    // }
+    // delay(100);
 }

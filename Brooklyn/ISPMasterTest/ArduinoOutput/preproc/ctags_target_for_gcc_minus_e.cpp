@@ -7,6 +7,11 @@ uint8_t datalen;
 uint8_t data[10];
 uint8_t ck1;
 uint8_t ck2;
+uint8_t id;
+
+
+
+
 
 void LED(uint8_t color){
     switch (color){
@@ -36,6 +41,7 @@ void LED(uint8_t color){
 bool calcChecksum(){
     int packetSum = 0;
     packetSum += header;
+    packetSum += id;
     packetSum += cmd;
     packetSum += datalen;
     for(int i=0;i<datalen;i++){
@@ -57,7 +63,24 @@ uint8_t SPISend(uint8_t SSpin, uint8_t data){
     return resp;
 }
 
-bool SPISendpacket(uint8_t SSpin, uint8_t data[]){
+bool receivePacket(uint8_t SSpin){
+    header = SPISend(SSpin,0);
+    if(header==255){
+        cmd = SPISend(SSpin,0);
+        datalen = SPISend(SSpin,0);
+        for(int i=0;i<datalen;i++){
+            data[i] = SPISend(SSpin,0);
+        }
+        ck1 = SPISend(SSpin,0);
+        ck2 = SPISend(SSpin,0);
+        if(calcChecksum()){
+            return true;
+        }
+    }
+    return false;
+}
+
+uint8_t SPISendpacket(uint8_t SSpin, uint8_t data[]){
     int packetSum = 0;
     SPISend(SSpin,data[0]);
     packetSum+=data[0];
@@ -74,25 +97,18 @@ bool SPISendpacket(uint8_t SSpin, uint8_t data[]){
     SPISend(SSpin, ck1);
     SPISend(SSpin, ck2);
     delayMicroseconds(200);
-    header = SPISend(SSpin,0);
-    if(header==255){
-        cmd = SPISend(SSpin,0);
-        datalen = SPISend(SSpin,0);
-        for(int i=0;i<datalen;i++){
-            data[i] = SPISend(SSpin,0);
-            packetSum += data[i];
-        }
-        ck1 = SPISend(SSpin,0);
-        ck2 = SPISend(SSpin,0);
-        if(calcChecksum){
-            return true;
-        }
-    return false;
+
+    if(receivePacket(SSpin)){
+        LED(2);
     }
 }
 
+void handleResponse(){
+
+}
+
 void setup(){
-    Serial.begin(9600);
+    Serial.begin(1000000);
     pinMode(7, 0x1);
     pinMode(11, 0x1);
     pinMode(A5, 0x1);
@@ -103,9 +119,24 @@ void setup(){
 }
 
 void loop(void){
-    uint8_t data[] = {255,0,0};
-    if(SPISendpacket(A1,data)){
-        LED(3);
+    header = Serial.read();
+    if(header==255){
+        id = Serial.read();
+        cmd = Serial.read();
+        datalen = Serial.read();
+        for(int i=0;i<datalen;i++){
+            data[i] = Serial.read();
+        }
+        ck1 = Serial.read();
+        ck2 = Serial.read();
+        if(calcChecksum()){
+            LED(3);
+        }
     }
-    delay(100);
+
+
+    // if(SPISendpacket(SS,data2)==2){
+    //     LED(GREEN);
+    // }
+    // delay(100);
 }

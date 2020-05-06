@@ -22,25 +22,29 @@ uint8_t data[10];
 uint8_t ck1;
 uint8_t ck2;
 
-#define CID_GETSPEED    0x00  // GET MOTOR SPEED
+#define CID_GETSPEED    0  // GET MOTOR SPEED
 
-#line 25 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#define RID_PACKETRROR 0 //PACKET CHECKSUM ERROR
+#define RID_EMPTYREPLY 1 //SUCCESS EMPTY REPLY
+#define RID_ENCODERSPEED 2 //SUCCESS RETURN ENCODER SPEED
+
+#line 29 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void LED(uint8_t color);
-#line 59 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 63 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 uint8_t readData();
-#line 69 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 73 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 bool receivePacket();
-#line 86 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 90 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 bool calcChecksum();
-#line 102 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 106 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void SPISend(uint8_t data);
-#line 107 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 111 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void SPISendPacket(uint8_t data[]);
-#line 125 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 129 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void setup();
-#line 135 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 139 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void loop(void);
-#line 25 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 29 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void LED(uint8_t color){
     switch (color){
         case RED:
@@ -125,15 +129,15 @@ void SPISend(uint8_t data){
 
 void SPISendPacket(uint8_t data[]){
     int packetSum = 0;
+    SPISend(255);
+    packetSum+=255;
     SPISend(data[0]);
     packetSum+=data[0];
     SPISend(data[1]);
     packetSum+=data[1];
-    SPISend(data[2]);
-    packetSum+=data[2];
-    for(int i=0;i<data[2];i++){
-        packetSum+=data[3+i];
-        SPISend(data[3+i]);
+    for(int i=0;i<data[1];i++){
+        packetSum+=data[2+i];
+        SPISend(data[2+i]);
     }
     ck1 = floor(packetSum / 256);
     ck2 = packetSum % 256;
@@ -152,7 +156,7 @@ void setup(){
 }
 
 void loop(void){
-    uint8_t data[] = {255,1,1,72};
+    uint8_t data[] = {RID_ENCODERSPEED,1,72};
     if(receivePacket()){
         switch(cmd){
             case CID_GETSPEED:
