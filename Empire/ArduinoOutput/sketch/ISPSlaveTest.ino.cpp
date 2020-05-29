@@ -22,29 +22,25 @@ uint8_t data[10];
 uint8_t ck1;
 uint8_t ck2;
 
-#define CID_GETSPEED    0  // GET MOTOR SPEED
+#define CID_GETSPEED    0x00  // GET MOTOR SPEED
 
-#define RID_PACKETRROR 0 //PACKET CHECKSUM ERROR
-#define RID_EMPTYREPLY 1 //SUCCESS EMPTY REPLY
-#define RID_ENCODERSPEED 2 //SUCCESS RETURN ENCODER SPEED
-
-#line 29 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 25 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void LED(uint8_t color);
-#line 63 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 61 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 uint8_t readData();
-#line 73 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 71 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 bool receivePacket();
-#line 90 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 88 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 bool calcChecksum();
-#line 106 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 104 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void SPISend(uint8_t data);
-#line 111 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 109 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void SPISendPacket(uint8_t data[]);
-#line 129 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 127 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void setup();
-#line 139 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 140 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void loop(void);
-#line 29 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+#line 25 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 void LED(uint8_t color){
     switch (color){
         case RED:
@@ -72,7 +68,9 @@ void LED(uint8_t color){
 
 ISR (SPI_STC_vect)
 {
+    LED(GREEN);
     buffer[idx] = SPDR;
+    SPDR=20;
     if(idx==99){
         idx=0;
     }
@@ -129,15 +127,15 @@ void SPISend(uint8_t data){
 
 void SPISendPacket(uint8_t data[]){
     int packetSum = 0;
-    SPISend(255);
-    packetSum+=255;
     SPISend(data[0]);
     packetSum+=data[0];
     SPISend(data[1]);
     packetSum+=data[1];
-    for(int i=0;i<data[1];i++){
-        packetSum+=data[2+i];
-        SPISend(data[2+i]);
+    SPISend(data[2]);
+    packetSum+=data[2];
+    for(int i=0;i<data[2];i++){
+        packetSum+=data[3+i];
+        SPISend(data[3+i]);
     }
     ck1 = floor(packetSum / 256);
     ck2 = packetSum % 256;
@@ -150,17 +148,21 @@ void setup(){
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
     pinMode(MISO,OUTPUT);
-    SPCR |= _BV(SPE); 
-    SPI.attachInterrupt();
-    LED(RED);
+    SPCR |= _BV(SPE);
+    SPCR &= ~(_BV(MSTR)); //Arduino is Slave
+    SPDR = 0x67;  //test value
+    SPCR |= _BV(SPIE);      //we not using SPI.attachInterrupt() why?
+    sei();
+    LED(BLUE);
 }
 
 void loop(void){
-    uint8_t data[] = {RID_ENCODERSPEED,1,72};
+    uint8_t data[] = {255,1,1,72};
     if(receivePacket()){
+        LED(GREEN);
         switch(cmd){
             case CID_GETSPEED:
-                LED(GREEN);
+                
                 SPISendPacket(data);
                 break;
         }

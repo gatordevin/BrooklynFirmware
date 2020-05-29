@@ -14,10 +14,6 @@ uint8_t ck2;
 
 
 
-
-
-
-
 void LED(uint8_t color){
     switch (color){
         case 1:
@@ -44,16 +40,22 @@ void LED(uint8_t color){
 }
 
 
-# 54 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+# 50 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
 extern "C" void __vector_17 /* SPI Serial Transfer Complete */ (void) __attribute__ ((signal,used, externally_visible)) ; void __vector_17 /* SPI Serial Transfer Complete */ (void)
 
-# 55 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+# 51 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
 {
+    LED(3);
     buffer[idx] = 
-# 56 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+# 53 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
                  (*(volatile uint8_t *)((0x2E) + 0x20))
-# 56 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+# 53 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
                      ;
+    
+# 54 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+   (*(volatile uint8_t *)((0x2E) + 0x20))
+# 54 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+       =20;
     if(idx==99){
         idx=0;
     }
@@ -105,24 +107,24 @@ bool calcChecksum(){
 
 void SPISend(uint8_t data){
     
-# 107 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+# 105 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
    (*(volatile uint8_t *)((0x2E) + 0x20)) 
-# 107 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+# 105 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
         = data;
     readData();
 }
 
 void SPISendPacket(uint8_t data[]){
     int packetSum = 0;
-    SPISend(255);
-    packetSum+=255;
     SPISend(data[0]);
     packetSum+=data[0];
     SPISend(data[1]);
     packetSum+=data[1];
-    for(int i=0;i<data[1];i++){
-        packetSum+=data[2+i];
-        SPISend(data[2+i]);
+    SPISend(data[2]);
+    packetSum+=data[2];
+    for(int i=0;i<data[2];i++){
+        packetSum+=data[3+i];
+        SPISend(data[3+i]);
     }
     ck1 = floor(packetSum / 256);
     ck2 = packetSum % 256;
@@ -136,24 +138,52 @@ void setup(){
     pinMode(A3, 0x1);
     pinMode(MISO,0x1);
     
-# 134 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+# 132 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
    (*(volatile uint8_t *)((0x2C) + 0x20)) 
-# 134 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+# 132 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
         |= 
-# 134 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+# 132 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
            (1 << (6))
-# 134 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+# 132 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
                    ;
-    SPI.attachInterrupt();
-    LED(1);
+    
+# 133 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+   (*(volatile uint8_t *)((0x2C) + 0x20)) 
+# 133 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+        &= ~(
+# 133 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+             (1 << (4))
+# 133 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+                      ); //Arduino is Slave
+    
+# 134 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+   (*(volatile uint8_t *)((0x2E) + 0x20)) 
+# 134 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+        = 0x67; //test value
+    
+# 135 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+   (*(volatile uint8_t *)((0x2C) + 0x20)) 
+# 135 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+        |= 
+# 135 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+           (1 << (7))
+# 135 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+                    ; //we not using SPI.attachInterrupt() why?
+    
+# 136 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino" 3
+   __asm__ __volatile__ ("sei" ::: "memory")
+# 136 "/home/techgarage/BrooklynFirmware/Empire/ISPSlaveTest.ino"
+        ;
+    LED(2);
 }
 
 void loop(void){
-    uint8_t data[] = {2 /*SUCCESS RETURN ENCODER SPEED*/,1,72};
+    uint8_t data[] = {255,1,1,72};
     if(receivePacket()){
+        LED(3);
         switch(cmd){
-            case 0 /* GET MOTOR SPEED*/:
-                LED(3);
+            case 0x00 /* GET MOTOR SPEED*/:
+
                 SPISendPacket(data);
                 break;
         }

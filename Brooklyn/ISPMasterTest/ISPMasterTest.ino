@@ -10,17 +10,15 @@
 #define blue_pin 11
 #define green_pin A5
 
+static uint8_t ss[] = {A1, A0, 0, 1, 10, 9, 12, 4};
+
 uint8_t header;
+uint8_t id;
 uint8_t cmd;
 uint8_t datalen;
 uint8_t data[10];
 uint8_t ck1;
 uint8_t ck2;
-uint8_t id;
-
-#define RID_PACKETRROR 0 //PACKET CHECKSUM ERROR
-#define RID_EMPTYREPLY 1 //SUCCESS EMPTY RID_EMPTYREPLY
-#define RID_ENCODERSPEED 2 //SUCCESS RETURN ENCODER SPEED
 
 void LED(uint8_t color){
     switch (color){
@@ -50,8 +48,26 @@ void LED(uint8_t color){
 bool calcChecksum(){
     int packetSum = 0;
     packetSum += header;
-    packetSum += id;
     packetSum += cmd;
+    packetSum += datalen;
+    for(int i=0;i<datalen;i++){
+        packetSum += data[i];
+    }
+    
+    if(floor(packetSum / 256) == ck1){
+        if(packetSum % 256 == ck2){
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool calcChecksumSerial(){
+    int packetSum = 0;
+    packetSum += header;
+    packetSum += cmd;
+    packetSum += id;
     packetSum += datalen;
     for(int i=0;i<datalen;i++){
         packetSum += data[i];
@@ -72,48 +88,57 @@ uint8_t SPISend(uint8_t SSpin, uint8_t data){
     return resp;
 }
 
-bool receivePacket(uint8_t SSpin){
-    header = SPISend(SSpin,0);
-    if(header==255){
-        cmd = SPISend(SSpin,0);
-        datalen = SPISend(SSpin,0);
-        for(int i=0;i<datalen;i++){
-            data[i] = SPISend(SSpin,0);
-        }
-        ck1 = SPISend(SSpin,0);
-        ck2 = SPISend(SSpin,0);
-        if(calcChecksum()){
-            return true;
-        }
-    }
-    return false;
-}
-
-uint8_t SPISendpacket(uint8_t SSpin, uint8_t data[]){
+bool SPISendpacket(uint8_t SSpin){
     int packetSum = 0;
-    SPISend(SSpin,data[0]);
-    packetSum+=data[0];
-    SPISend(SSpin,data[1]);
-    packetSum+=data[1];
-    SPISend(SSpin,data[2]);
-    packetSum+=data[2];
-    for(int i=0;i<data[2];i++){
-        packetSum+=data[3+i];
-        SPISend(SSpin,data[3+i]);
+    SPISend(SSpin,255);
+    packetSum+=255;
+    SPISend(SSpin,cmd);
+    packetSum+=cmd;
+    SPISend(SSpin,datalen);
+    packetSum+=datalen;
+    for(int i=0;i<datalen;i++){
+        packetSum+=data[i];
+        SPISend(SSpin,data[i]);
     }
     ck1 = floor(packetSum / 256);
     ck2 = packetSum % 256;
     SPISend(SSpin, ck1);
     SPISend(SSpin, ck2);
     delayMicroseconds(200);
-
-    if(receivePacket(SSpin)){
-        LED(BLUE);
+    header = SPISend(SSpin,0);
+    if(header==255){
+        cmd = SPISend(SSpin,0);
+        datalen = SPISend(SSpin,0);
+        for(int i=0;i<datalen;i++){
+            data[i] = SPISend(SSpin,0);
+            packetSum += data[i];
+        }
+        ck1 = SPISend(SSpin,0);
+        ck2 = SPISend(SSpin,0);
+        
+        if(calcChecksum()==true){
+            return true;
+        }
+    return false;
     }
 }
 
-void handleResponse(){
-
+void SerialSendpacket(uint8_t data[]){
+    int packetSum = 0;
+    Serial.write(255);
+    packetSum+=255;
+    Serial.write(data[0]);
+    packetSum+=data[0];
+    Serial.write(data[1]);
+    packetSum+=data[1];
+    for(int i=0;i<data[1];i++){
+        packetSum+=data[2+i];
+        Serial.write(data[2+i]);
+    }
+    ck1 = floor(packetSum / 256);
+    ck2 = packetSum % 256;
+    Serial.write(ck1);
+    Serial.write(ck2);
 }
 
 void setup(){
@@ -122,30 +147,54 @@ void setup(){
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
     pinMode(SS, OUTPUT);
+    pinMode(MOSI, OUTPUT);
+    SPI.begin();
+    SPI.setClockDivider(SPI_CLOCK_DIV16);
     digitalWrite(SS, HIGH);
-    SPI.begin ();
     LED(RED);
 }
 
-void loop(void){
-    header = Serial.read();
-    if(header==255){
-        id = Serial.read();
-        cmd = Serial.read();
-        datalen = Serial.read();
-        for(int i=0;i<datalen;i++){
-            data[i] = Serial.read();
-        }
-        ck1 = Serial.read();
-        ck2 = Serial.read();
-        if(calcChecksum()){
-            LED(GREEN);
-        }
-    }
-    
+uint8_t readData(){
+  while(!Serial.available()){}
+  uint8_t data = Serial.read();
+  return(data);
+}
 
-    // if(SPISendpacket(SS,data2)==2){
-    //     LED(GREEN);
-    // }
-    // delay(100);
+void analyzeResponse(uint8_t cmd_resp){
+
+}
+
+void loop(void){
+    LED(RED);
+    header = readData();
+    switch (header){
+        case 140:
+            Serial.write(140);
+            break;
+        case 255:
+            id = readData();
+            cmd = readData();
+            datalen = readData();
+            for(int i=0;i<datalen;i++){
+                data[i] = readData();
+            }
+            ck1 = readData();
+            ck2 = readData();
+            if(calcChecksumSerial()){
+                uint8_t serpacket[] = {1,1,3};
+                if(SPISendpacket(ss[id])){
+                    switch (cmd){
+                        case 2:
+                            LED(GREEN);
+                            SerialSendpacket(serpacket);
+                            break;
+                        }
+                }
+                
+            }
+            break;
+        case 72:
+            Serial.write(72);
+            break;
+    }
 }

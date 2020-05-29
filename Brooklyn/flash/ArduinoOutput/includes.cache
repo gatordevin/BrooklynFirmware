@@ -1,0 +1,27 @@
+[
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/cores/arduino"
+  },
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/variants/leonardo"
+  },
+  {
+    "Sourcefile": "/home/techgarage/BrooklynFirmware/Brooklyn/flash/ArduinoOutput/sketch/flash.ino.cpp",
+    "Include": "SPI.h",
+    "Includepath": "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/libraries/SPI/src"
+  },
+  {
+    "Sourcefile": "/home/techgarage/BrooklynFirmware/Brooklyn/flash/ArduinoOutput/sketch/flash.ino.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/libraries/SPI/src/SPI.cpp",
+    "Include": "",
+    "Includepath": null
+  }
+]
