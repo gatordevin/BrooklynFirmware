@@ -323,6 +323,11 @@ void loop(void) {
         mode = CONTROLLER;
         LED(GREEN);
         break;
+      case '0':
+        RESET = reset_pins[0];
+        mode = PROGRAMMER;
+        LED(RED);
+        break;
     }
   }
   switch(mode){

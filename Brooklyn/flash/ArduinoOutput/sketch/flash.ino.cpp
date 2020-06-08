@@ -231,79 +231,79 @@ void setup();
 void reset_target(bool reset);
 #line 311 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void loop(void);
-#line 338 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 343 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 bool readSerialPacket();
-#line 358 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 363 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void sendSerialPacket(uint8_t send_buff[]);
-#line 371 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 376 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 uint8_t readByte();
-#line 377 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 382 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void CopySerToSPI();
-#line 383 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 388 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void CopySPIToSer();
-#line 389 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 394 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 uint8_t SPISend(uint8_t SSpin, uint8_t data);
-#line 397 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 402 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 bool SPISendPacket(uint8_t SSpin);
-#line 412 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 417 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 bool SPIRecvPacket(uint8_t SSpin);
-#line 430 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 435 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 bool verifyChecksum(uint8_t recv_buff[]);
-#line 440 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 445 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void calculateChecksum(uint8_t data_buff[]);
-#line 453 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 458 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 uint8_t getch();
-#line 457 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 462 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void fill(int n);
-#line 474 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 479 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d);
-#line 481 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 486 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void empty_reply();
-#line 491 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 496 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void breply(uint8_t b);
-#line 502 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 507 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void get_version(uint8_t c);
-#line 521 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 526 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void set_parameters();
-#line 548 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 553 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void start_pmode();
-#line 578 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
-void start_cmode();
 #line 583 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+void start_cmode();
+#line 588 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void end_pmode();
-#line 594 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 599 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void end_cmode();
-#line 598 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 603 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void universal();
-#line 606 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 611 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void flash(uint8_t hilo, unsigned int addr, uint8_t data);
-#line 612 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 617 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void commit(unsigned int addr);
-#line 621 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 626 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 unsigned int current_page();
-#line 638 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 643 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void write_flash(int length);
-#line 649 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 654 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 uint8_t write_flash_pages(int length);
-#line 668 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 673 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 uint8_t write_eeprom(unsigned int length);
-#line 685 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 690 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 uint8_t write_eeprom_chunk(unsigned int start, unsigned int length);
-#line 696 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 701 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void program_page();
-#line 721 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 726 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 uint8_t flash_read(uint8_t hilo, unsigned int addr);
-#line 728 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 733 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 char flash_read_page(int length);
-#line 739 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 744 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 char eeprom_read_page(int length);
-#line 750 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 755 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void read_page();
-#line 766 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 771 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void read_signature();
-#line 787 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 792 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void avrisp();
-#line 880 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
+#line 885 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void controller_switch();
 #line 225 "/home/techgarage/BrooklynFirmware/Brooklyn/flash/flash.ino"
 void LED(uint8_t color){
@@ -406,6 +406,11 @@ void loop(void) {
         start_cmode();
         mode = CONTROLLER;
         LED(GREEN);
+        break;
+      case '0':
+        RESET = reset_pins[0];
+        mode = PROGRAMMER;
+        LED(RED);
         break;
     }
   }

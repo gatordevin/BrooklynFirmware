@@ -228,6 +228,11 @@ void loop(void) {
         mode = 2;
         LED(3);
         break;
+      case '0':
+        RESET = reset_pins[0];
+        mode = 1;
+        LED(1);
+        break;
     }
   }
   switch(mode){
