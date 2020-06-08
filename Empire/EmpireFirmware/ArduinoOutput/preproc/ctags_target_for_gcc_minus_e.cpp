@@ -1,6 +1,11 @@
 # 1 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 # 2 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 2
-# 12 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 3 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 2
+# 16 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+Servo servo_1;
+Servo servo_2;
+Servo servos[2] = {servo_1,servo_2};
+
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
 uint8_t spi_send_buff[20];
@@ -9,6 +14,7 @@ volatile int ridx = 0;
 
 uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
+
 
 
 
@@ -38,21 +44,16 @@ void LED(uint8_t color){
 }
 
 
-# 48 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 57 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
 extern "C" void __vector_17 /* SPI Serial Transfer Complete */ (void) __attribute__ ((signal,used, externally_visible)) ; void __vector_17 /* SPI Serial Transfer Complete */ (void)
 
-# 49 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 58 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 {
     interrupt_buff[idx] = 
-# 50 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 59 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
                          (*(volatile uint8_t *)((0x2E) + 0x20))
-# 50 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 59 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
                              ;
-    
-# 51 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
-   (*(volatile uint8_t *)((0x2E) + 0x20))
-# 51 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
-       =20;
     if(idx==99){
         idx=0;
     }
@@ -76,9 +77,9 @@ void waitForByte(){
 
 void SPISend(uint8_t data){
     
-# 74 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 82 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    (*(volatile uint8_t *)((0x2E) + 0x20)) 
-# 74 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 82 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         = data;
     waitForByte();
 }
@@ -141,39 +142,42 @@ void setup(){
     pinMode(A2, 0x1);
     pinMode(A3, 0x1);
     pinMode(MISO,0x1);
+    servo_1.attach(A4);
+    servo_2.attach(A5);
     
-# 136 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 146 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    (*(volatile uint8_t *)((0x2C) + 0x20)) 
-# 136 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 146 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         |= 
-# 136 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 146 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
            (1 << (6))
-# 136 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 146 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
                    ;
     
-# 137 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 147 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    (*(volatile uint8_t *)((0x2C) + 0x20)) 
-# 137 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 147 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         &= ~(
-# 137 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 147 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
              (1 << (4))
-# 137 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 147 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
                       ); //Arduino is Slave
     
-# 138 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 148 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    (*(volatile uint8_t *)((0x2C) + 0x20)) 
-# 138 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 148 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         |= 
-# 138 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 148 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
            (1 << (7))
-# 138 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 148 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
                     ; //we not using SPI.attachInterrupt() why?
     LED(2);
     
-# 140 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 150 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    __asm__ __volatile__ ("sei" ::: "memory")
-# 140 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 150 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         ;
+    servo_1.write(0);
 }
 
 void loop(){
@@ -185,6 +189,12 @@ void loop(){
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
                 spi_send_buff[3] = 0;
+                sendSPIPacket(spi_recv_buff);
+                break;
+
+            case 9:
+                LED(3);
+                servos[spi_recv_buff[4]].write(spi_recv_buff[5]);
                 sendSPIPacket(spi_recv_buff);
                 break;
 

@@ -1,4 +1,5 @@
 #include <SPI.h>
+#include <Servo.h>
 
 #define RED 1
 #define BLUE 2
@@ -8,6 +9,13 @@
 #define red_pin 0
 #define blue_pin A2
 #define green_pin A3
+
+#define servo_1_pin A4
+#define servo_2_pin A5
+
+Servo servo_1;
+Servo servo_2;
+Servo servos[2] = {servo_1,servo_2};
 
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
@@ -19,6 +27,7 @@ uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
 
 #define CMD_GET_ENCODER 24
+#define CMD_SET_PWM 9
 
 void LED(uint8_t color){
     switch (color){
@@ -132,11 +141,14 @@ void setup(){
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
     pinMode(MISO,OUTPUT);
+    servo_1.attach(servo_1_pin);
+    servo_2.attach(servo_2_pin);
     SPCR |= _BV(SPE);
     SPCR &= ~(_BV(MSTR)); //Arduino is Slave
     SPCR |= _BV(SPIE);      //we not using SPI.attachInterrupt() why?
     LED(BLUE);
     sei();
+    servo_1.write(0);
 }
 
 void loop(){
@@ -148,6 +160,12 @@ void loop(){
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
                 spi_send_buff[3] = 0;
+                sendSPIPacket(spi_recv_buff);
+                break;
+
+            case CMD_SET_PWM:
+                LED(GREEN);
+                servos[spi_recv_buff[4]].write(spi_recv_buff[5]);
                 sendSPIPacket(spi_recv_buff);
                 break;
             

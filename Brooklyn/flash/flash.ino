@@ -70,7 +70,7 @@
 // The standard pin configuration.
 #ifndef ARDUINO_HOODLOADER2
 
-#define RESET     A2 // Use pin 10 to reset the target rather than SS
+#define RESET     A3 // Use pin 10 to reset the target rather than SS
 #define LED_HB    9
 #define LED_ERR   8
 #define LED_PMODE 7

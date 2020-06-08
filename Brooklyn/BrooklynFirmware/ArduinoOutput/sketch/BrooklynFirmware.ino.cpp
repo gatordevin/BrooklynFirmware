@@ -14,6 +14,7 @@
 //DEFINE ALL COMMAND BYTES
 #define CMD_HB 72
 #define CMD_GET_ENCODER 24
+#define CMD_SET_PWM 9
 
 uint8_t ser_recv_buff[20];
 uint8_t ser_send_buff[20];
@@ -22,35 +23,35 @@ uint8_t spi_send_buff[20];
 
 uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
-static uint8_t ss[] = {A1, A0, 0, 1, 10, 9, 12, 4};
+static uint8_t ss[] = {A0, A1, 0, 1, 10, 9, 12, 4};
 
-#line 25 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 26 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void LED(uint8_t color);
-#line 50 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 51 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t readByte();
-#line 56 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 57 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 bool verifyChecksum(uint8_t recv_buff[]);
-#line 66 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 67 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void calculateChecksum(uint8_t data_buff[]);
-#line 79 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 80 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 bool readSerialPacket();
-#line 96 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 97 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void sendSerialPacket(uint8_t send_buff[]);
-#line 109 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 110 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t SPISend(uint8_t SSpin, uint8_t data);
-#line 117 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 118 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 bool SPIRecvPacket(uint8_t SSpin);
-#line 135 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 136 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 bool SPISendPacket(uint8_t SSpin);
-#line 150 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 151 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void CopySerToSPI();
-#line 156 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 157 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void CopySPIToSer();
-#line 162 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 163 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void setup();
-#line 175 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 179 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void loop();
-#line 25 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 26 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void LED(uint8_t color){
     switch (color){
         case RED:
@@ -193,11 +194,14 @@ void setup(){
     pinMode(red_pin, OUTPUT);
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
-    pinMode(A1, OUTPUT);
+    for(int i=0;i<8;i++){
+        pinMode(ss[i], OUTPUT);
+        digitalWrite(ss[i], HIGH);
+    }
     pinMode(MOSI, OUTPUT);
     SPI.begin();
     SPI.setClockDivider(SPI_CLOCK_DIV8);
-    digitalWrite(A1, HIGH);
+    
     LED(BLUE);
 }
 
@@ -212,25 +216,34 @@ void loop(){
                 sendSerialPacket(ser_send_buff);
                 break;
             
-            case CMD_GET_ENCODER:
-                CopySerToSPI();
-                // SPISendPacket(ss[ser_recv_buff[1]-2]);
-                // CopySPIToSer();
-                // sendSerialPacket(ser_send_buff);
-                if(SPISendPacket(ss[ser_recv_buff[1]-2])){
-                    CopySPIToSer();
+            case CMD_GET_ENCODER: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
+                if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
+                    CopySPIToSer();                         //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
                     sendSerialPacket(ser_send_buff);
                 }else{
-                    LED(RED);
-                    ser_send_buff[1] = 0;
-                    ser_send_buff[2] = 2;
-                    ser_send_buff[3] = 0; 
+                    LED(RED);   //If it failed we can do somethign different like specify the error message as a cehcksum error and the computer will decide wether it wants to ask for that data again
+                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                    ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                    ser_send_buff[3] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
                     sendSerialPacket(ser_send_buff);
                 }
                 
                 break;
             
             default:
+                CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
+                if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
+                    CopySPIToSer();                         //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
+                    sendSerialPacket(ser_send_buff);
+                }else{
+                    LED(RED);   //If it failed we can do somethign different like specify the error message as a cehcksum error and the computer will decide wether it wants to ask for that data again
+                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                    ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                    ser_send_buff[3] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                    sendSerialPacket(ser_send_buff);
+                }
+                
                 break;
         }
     }else{

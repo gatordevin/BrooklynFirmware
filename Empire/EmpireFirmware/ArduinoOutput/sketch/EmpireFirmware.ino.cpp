@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #line 1 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 #include <SPI.h>
+#include <Servo.h>
 
 #define RED 1
 #define BLUE 2
@@ -10,6 +11,13 @@
 #define red_pin 0
 #define blue_pin A2
 #define green_pin A3
+
+#define servo_1_pin A4
+#define servo_2_pin A5
+
+Servo servo_1;
+Servo servo_2;
+Servo servos[2] = {servo_1,servo_2};
 
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
@@ -21,28 +29,29 @@ uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
 
 #define CMD_GET_ENCODER 24
+#define CMD_SET_PWM 9
 
-#line 23 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 32 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 void LED(uint8_t color);
-#line 58 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 66 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 uint8_t readByte();
-#line 68 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 76 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 void waitForByte();
-#line 73 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 81 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 void SPISend(uint8_t data);
-#line 78 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 86 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 bool verifyChecksum(uint8_t recv_buff[]);
-#line 88 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 96 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 void calculateChecksum(uint8_t data_buff[]);
-#line 101 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 109 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 bool readSPIPacket();
-#line 118 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 126 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 void sendSPIPacket(uint8_t send_buff[]);
-#line 131 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 139 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 void setup();
-#line 143 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 154 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 void loop();
-#line 23 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+#line 32 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 void LED(uint8_t color){
     switch (color){
         case RED:
@@ -71,7 +80,6 @@ void LED(uint8_t color){
 ISR (SPI_STC_vect)
 {
     interrupt_buff[idx] = SPDR;
-    SPDR=20;
     if(idx==99){
         idx=0;
     }
@@ -156,11 +164,14 @@ void setup(){
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
     pinMode(MISO,OUTPUT);
+    servo_1.attach(servo_1_pin);
+    servo_2.attach(servo_2_pin);
     SPCR |= _BV(SPE);
     SPCR &= ~(_BV(MSTR)); //Arduino is Slave
     SPCR |= _BV(SPIE);      //we not using SPI.attachInterrupt() why?
     LED(BLUE);
     sei();
+    servo_1.write(0);
 }
 
 void loop(){
@@ -172,6 +183,12 @@ void loop(){
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
                 spi_send_buff[3] = 0;
+                sendSPIPacket(spi_recv_buff);
+                break;
+
+            case CMD_SET_PWM:
+                LED(GREEN);
+                servos[spi_recv_buff[4]].write(spi_recv_buff[5]);
                 sendSPIPacket(spi_recv_buff);
                 break;
             

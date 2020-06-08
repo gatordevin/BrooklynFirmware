@@ -5,6 +5,7 @@
 
 
 
+
 uint8_t ser_recv_buff[20];
 uint8_t ser_send_buff[20];
 uint8_t spi_recv_buff[20];
@@ -12,7 +13,7 @@ uint8_t spi_send_buff[20];
 
 uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
-static uint8_t ss[] = {A1, A0, 0, 1, 10, 9, 12, 4};
+static uint8_t ss[] = {A0, A1, 0, 1, 10, 9, 12, 4};
 
 void LED(uint8_t color){
     switch (color){
@@ -156,11 +157,14 @@ void setup(){
     pinMode(7, 0x1);
     pinMode(11, 0x1);
     pinMode(A5, 0x1);
-    pinMode(A1, 0x1);
+    for(int i=0;i<8;i++){
+        pinMode(ss[i], 0x1);
+        digitalWrite(ss[i], 0x1);
+    }
     pinMode(MOSI, 0x1);
     SPI.begin();
     SPI.setClockDivider(0x05);
-    digitalWrite(A1, 0x1);
+
     LED(2);
 }
 
@@ -175,25 +179,34 @@ void loop(){
                 sendSerialPacket(ser_send_buff);
                 break;
 
-            case 24:
-                CopySerToSPI();
-                // SPISendPacket(ss[ser_recv_buff[1]-2]);
-                // CopySPIToSer();
-                // sendSerialPacket(ser_send_buff);
-                if(SPISendPacket(ss[ser_recv_buff[1]-2])){
-                    CopySPIToSer();
+            case 24: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
+                if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
+                    CopySPIToSer(); //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
                     sendSerialPacket(ser_send_buff);
                 }else{
-                    LED(1);
-                    ser_send_buff[1] = 0;
-                    ser_send_buff[2] = 2;
-                    ser_send_buff[3] = 0;
+                    LED(1); //If it failed we can do somethign different like specify the error message as a cehcksum error and the computer will decide wether it wants to ask for that data again
+                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                    ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                    ser_send_buff[3] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
                     sendSerialPacket(ser_send_buff);
                 }
 
                 break;
 
             default:
+                CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
+                if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
+                    CopySPIToSer(); //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
+                    sendSerialPacket(ser_send_buff);
+                }else{
+                    LED(1); //If it failed we can do somethign different like specify the error message as a cehcksum error and the computer will decide wether it wants to ask for that data again
+                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                    ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                    ser_send_buff[3] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                    sendSerialPacket(ser_send_buff);
+                }
+
                 break;
         }
     }else{

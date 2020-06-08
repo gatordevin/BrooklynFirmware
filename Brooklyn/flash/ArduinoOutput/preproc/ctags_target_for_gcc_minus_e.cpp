@@ -176,7 +176,7 @@ void heartbeat() {
 static bool rst_active_high;
 
 void reset_target(bool reset) {
-  digitalWrite(A2 /* Use pin 10 to reset the target rather than SS*/, ((reset && rst_active_high) || (!reset && !rst_active_high)) ? 0x1 : 0x0);
+  digitalWrite(A3 /* Use pin 10 to reset the target rather than SS*/, ((reset && rst_active_high) || (!reset && !rst_active_high)) ? 0x1 : 0x0);
 }
 
 void loop(void) {
@@ -309,7 +309,7 @@ void start_pmode() {
   // So we have to configure RESET as output here,
   // (reset_target() first sets the correct level)
   reset_target(true);
-  pinMode(A2 /* Use pin 10 to reset the target rather than SS*/, 0x1);
+  pinMode(A3 /* Use pin 10 to reset the target rather than SS*/, 0x1);
   SPI.begin();
   SPI.beginTransaction(SPISettings((1000000/6), 1, 0x00));
 
@@ -336,7 +336,7 @@ void end_pmode() {
   pinMode(MOSI, 0x0);
   pinMode(SCK, 0x0);
   reset_target(false);
-  pinMode(A2 /* Use pin 10 to reset the target rather than SS*/, 0x0);
+  pinMode(A3 /* Use pin 10 to reset the target rather than SS*/, 0x0);
   pmode = 0;
 }
 
