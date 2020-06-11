@@ -87,7 +87,6 @@
 // on Uno or Mega boards. We must use pins that are broken out:
 #else
 
-#define RESET     	4
 
 #endif
 
@@ -248,7 +247,7 @@ void LED(uint8_t color){
 }
 
 uint8_t reset_pins[] = {A2, A3, 3, 2, 13, 5, 8, 6};
-uint8_t ss[] = {A0, A1, 0, 1, 10, 9, 12, 4};
+uint8_t ss[] = {A1, A0, 0, 1, 10, 9, 12, 4};
 uint8_t RESET = 0;
 
 uint8_t ser_recv_buff[20];
@@ -320,6 +319,7 @@ void loop(void) {
         break;
       case 140:
         start_cmode();
+        SERIAL.write(140);
         mode = CONTROLLER;
         LED(GREEN);
         break;
