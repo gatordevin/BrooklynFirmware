@@ -17,6 +17,16 @@ Servo servo_1;
 Servo servo_2;
 Servo servos[2] = {servo_1,servo_2};
 
+int servo_1_min_angle = 0;
+int servo_1_max_angle = 180;
+int servo_1_min_microseconds = 1000;
+int servo_1_max_microseconds = 2000;
+int servo_2_min_angle = 0;
+int servo_2_max_angle = 180;
+int servo_2_min_microseconds = 1000;
+int servo_2_max_microseconds = 2000;
+
+
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
 uint8_t spi_send_buff[20];
@@ -28,6 +38,7 @@ uint8_t checksum2 = 0;
 
 #define CMD_GET_ENCODER 24
 #define CMD_SET_PWM 9
+#define CMD_SET_SERVO_RANGE 11
 
 void LED(uint8_t color){
     switch (color){
@@ -119,7 +130,7 @@ bool readSPIPacket(){
     }
     spi_recv_buff[spi_recv_buff[3]+4] = readByte(); //checksum 1
     spi_recv_buff[spi_recv_buff[3]+5] = readByte(); //checksum 2
-    
+   
     return(verifyChecksum(spi_recv_buff)); //return whether data was received succesfully
 }
 
@@ -151,6 +162,24 @@ void setup(){
     servo_1.write(0);
 }
 
+long convertToPWM(long angle, long minAngle, long maxAngle, long minPWM, long maxPWM){
+  //long valuePWM = map(angle,minAngle,maxAngle,minPWM,maxPWM);
+  int valuePWM = angle*(maxPWM/maxAngle);
+  //int valuePWM = angle * (2450/maxAngle);
+//  if(valuePWM==1980){
+//   LED(RED);
+//  }else if(valuePWM==2449){
+//   LED(GREEN);
+//  }
+  return valuePWM;
+}
+
+int ToDec(uint8_t lsb, uint8_t msb){
+  int bigNumber = lsb + (msb * 255);
+ 
+  return bigNumber;
+}
+
 void loop(){
     if(readSPIPacket()){
         spi_send_buff[0] = 255; //Set serial send header
@@ -164,11 +193,34 @@ void loop(){
                 break;
 
             case CMD_SET_PWM:
-                LED(GREEN);
-                servos[spi_recv_buff[4]].write(spi_recv_buff[5]);
+                if(spi_recv_buff[4]==0){
+                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(spi_recv_buff[5],servo_1_min_angle,servo_1_max_angle,servo_1_min_microseconds,servo_1_max_microseconds));
+                }
+                if(spi_recv_buff[4]==1){
+                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(spi_recv_buff[5],servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
+                }
                 sendSPIPacket(spi_recv_buff);
                 break;
-            
+
+            case CMD_SET_SERVO_RANGE:
+                int servo_min_angle = ToDec(spi_recv_buff[5], spi_recv_buff[6]);
+                int servo_max_angle = ToDec(spi_recv_buff[7], spi_recv_buff[8]);
+                int servo_min_microseconds = ToDec(spi_recv_buff[9], spi_recv_buff[10]);
+                int servo_max_microseconds = ToDec(spi_recv_buff[11], spi_recv_buff[12]);
+                if(spi_recv_buff[4]==0){
+                    servo_1_min_angle = servo_min_angle;
+                    servo_1_max_angle = servo_max_angle;
+                    servo_1_min_microseconds = servo_min_microseconds;
+                    servo_1_max_microseconds = servo_max_microseconds;
+                   
+                }
+                if(spi_recv_buff[4]==1){
+                    servo_2_min_angle = servo_min_angle;
+                    servo_2_max_angle = servo_max_angle;
+                    servo_2_min_microseconds = servo_min_microseconds;
+                    servo_2_max_microseconds = servo_max_microseconds;
+                }
+                sendSPIPacket(spi_recv_buff);
             default:
                 break;
         }

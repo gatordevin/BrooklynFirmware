@@ -6,6 +6,16 @@ Servo servo_1;
 Servo servo_2;
 Servo servos[2] = {servo_1,servo_2};
 
+int servo_1_min_angle = 0;
+int servo_1_max_angle = 180;
+int servo_1_min_microseconds = 1000;
+int servo_1_max_microseconds = 2000;
+int servo_2_min_angle = 0;
+int servo_2_max_angle = 180;
+int servo_2_min_microseconds = 1000;
+int servo_2_max_microseconds = 2000;
+
+
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
 uint8_t spi_send_buff[20];
@@ -14,6 +24,7 @@ volatile int ridx = 0;
 
 uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
+
 
 
 
@@ -44,15 +55,15 @@ void LED(uint8_t color){
 }
 
 
-# 57 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 68 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
 extern "C" void __vector_17 /* SPI Serial Transfer Complete */ (void) __attribute__ ((signal,used, externally_visible)) ; void __vector_17 /* SPI Serial Transfer Complete */ (void)
 
-# 58 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 69 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 {
     interrupt_buff[idx] = 
-# 59 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 70 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
                          (*(volatile uint8_t *)((0x2E) + 0x20))
-# 59 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 70 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
                              ;
     if(idx==99){
         idx=0;
@@ -77,9 +88,9 @@ void waitForByte(){
 
 void SPISend(uint8_t data){
     
-# 82 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 93 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    (*(volatile uint8_t *)((0x2E) + 0x20)) 
-# 82 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 93 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         = data;
     waitForByte();
 }
@@ -145,39 +156,57 @@ void setup(){
     servo_1.attach(A4);
     servo_2.attach(A5);
     
-# 146 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 157 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    (*(volatile uint8_t *)((0x2C) + 0x20)) 
-# 146 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 157 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         |= 
-# 146 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 157 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
            (1 << (6))
-# 146 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 157 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
                    ;
     
-# 147 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 158 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    (*(volatile uint8_t *)((0x2C) + 0x20)) 
-# 147 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 158 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         &= ~(
-# 147 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 158 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
              (1 << (4))
-# 147 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 158 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
                       ); //Arduino is Slave
     
-# 148 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 159 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    (*(volatile uint8_t *)((0x2C) + 0x20)) 
-# 148 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 159 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         |= 
-# 148 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 159 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
            (1 << (7))
-# 148 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 159 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
                     ; //we not using SPI.attachInterrupt() why?
     LED(2);
     
-# 150 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 161 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    __asm__ __volatile__ ("sei" ::: "memory")
-# 150 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 161 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         ;
     servo_1.write(0);
+}
+
+long convertToPWM(long angle, long minAngle, long maxAngle, long minPWM, long maxPWM){
+  //long valuePWM = map(angle,minAngle,maxAngle,minPWM,maxPWM);
+  int valuePWM = angle*(maxPWM/maxAngle);
+  //int valuePWM = angle * (2450/maxAngle);
+//  if(valuePWM==1980){
+//   LED(RED);
+//  }else if(valuePWM==2449){
+//   LED(GREEN);
+//  }
+  return valuePWM;
+}
+
+int ToDec(uint8_t lsb, uint8_t msb){
+  int bigNumber = lsb + (msb * 255);
+
+  return bigNumber;
 }
 
 void loop(){
@@ -193,11 +222,34 @@ void loop(){
                 break;
 
             case 9:
-                LED(3);
-                servos[spi_recv_buff[4]].write(spi_recv_buff[5]);
+                if(spi_recv_buff[4]==0){
+                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(spi_recv_buff[5],servo_1_min_angle,servo_1_max_angle,servo_1_min_microseconds,servo_1_max_microseconds));
+                }
+                if(spi_recv_buff[4]==1){
+                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(spi_recv_buff[5],servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
+                }
                 sendSPIPacket(spi_recv_buff);
                 break;
 
+            case 11:
+                int servo_min_angle = ToDec(spi_recv_buff[5], spi_recv_buff[6]);
+                int servo_max_angle = ToDec(spi_recv_buff[7], spi_recv_buff[8]);
+                int servo_min_microseconds = ToDec(spi_recv_buff[9], spi_recv_buff[10]);
+                int servo_max_microseconds = ToDec(spi_recv_buff[11], spi_recv_buff[12]);
+                if(spi_recv_buff[4]==0){
+                    servo_1_min_angle = servo_min_angle;
+                    servo_1_max_angle = servo_max_angle;
+                    servo_1_min_microseconds = servo_min_microseconds;
+                    servo_1_max_microseconds = servo_max_microseconds;
+
+                }
+                if(spi_recv_buff[4]==1){
+                    servo_2_min_angle = servo_min_angle;
+                    servo_2_max_angle = servo_max_angle;
+                    servo_2_min_microseconds = servo_min_microseconds;
+                    servo_2_max_microseconds = servo_max_microseconds;
+                }
+                sendSPIPacket(spi_recv_buff);
             default:
                 break;
         }
