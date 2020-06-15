@@ -29,6 +29,7 @@ uint8_t checksum2 = 0;
 
 
 
+
 void LED(uint8_t color){
     switch (color){
         case 1:
@@ -55,15 +56,15 @@ void LED(uint8_t color){
 }
 
 
-# 68 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 69 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
 extern "C" void __vector_17 /* SPI Serial Transfer Complete */ (void) __attribute__ ((signal,used, externally_visible)) ; void __vector_17 /* SPI Serial Transfer Complete */ (void)
 
-# 69 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 70 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
 {
     interrupt_buff[idx] = 
-# 70 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 71 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
                          (*(volatile uint8_t *)((0x2E) + 0x20))
-# 70 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 71 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
                              ;
     if(idx==99){
         idx=0;
@@ -88,9 +89,9 @@ void waitForByte(){
 
 void SPISend(uint8_t data){
     
-# 93 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
+# 94 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino" 3
    (*(volatile uint8_t *)((0x2E) + 0x20)) 
-# 93 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
+# 94 "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/EmpireFirmware.ino"
         = data;
     waitForByte();
 }
@@ -131,7 +132,6 @@ bool readSPIPacket(){
     }
     spi_recv_buff[spi_recv_buff[3]+4] = readByte(); //checksum 1
     spi_recv_buff[spi_recv_buff[3]+5] = readByte(); //checksum 2
-
     return(verifyChecksum(spi_recv_buff)); //return whether data was received succesfully
 }
 
@@ -213,8 +213,14 @@ void loop(){
     if(readSPIPacket()){
         spi_send_buff[0] = 255; //Set serial send header
         switch(spi_recv_buff[2]){
+            case 3:
+                spi_send_buff[1] = 0;
+                spi_send_buff[2] = 3;
+                spi_send_buff[3] = 1;
+                spi_send_buff[4] = 1; //CARD TYPE FOR EMPIRE ID 1
+                sendSPIPacket(spi_recv_buff);
+                break;
             case 24:
-                LED(3);
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
                 spi_send_buff[3] = 0;
@@ -222,11 +228,12 @@ void loop(){
                 break;
 
             case 9:
+                LED(3);
                 if(spi_recv_buff[4]==0){
-                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(spi_recv_buff[5],servo_1_min_angle,servo_1_max_angle,servo_1_min_microseconds,servo_1_max_microseconds));
+                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_1_min_angle,servo_1_max_angle,servo_1_min_microseconds,servo_1_max_microseconds));
                 }
                 if(spi_recv_buff[4]==1){
-                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(spi_recv_buff[5],servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
+                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
                 }
                 sendSPIPacket(spi_recv_buff);
                 break;
@@ -250,6 +257,8 @@ void loop(){
                     servo_2_max_microseconds = servo_max_microseconds;
                 }
                 sendSPIPacket(spi_recv_buff);
+                break;
+
             default:
                 break;
         }

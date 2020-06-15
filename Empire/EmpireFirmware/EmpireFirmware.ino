@@ -38,6 +38,7 @@ uint8_t checksum2 = 0;
 
 #define CMD_GET_ENCODER 24
 #define CMD_SET_PWM 9
+#define CMD_GET_CARD_TYPE 3
 #define CMD_SET_SERVO_RANGE 11
 
 void LED(uint8_t color){
@@ -130,7 +131,6 @@ bool readSPIPacket(){
     }
     spi_recv_buff[spi_recv_buff[3]+4] = readByte(); //checksum 1
     spi_recv_buff[spi_recv_buff[3]+5] = readByte(); //checksum 2
-   
     return(verifyChecksum(spi_recv_buff)); //return whether data was received succesfully
 }
 
@@ -184,8 +184,14 @@ void loop(){
     if(readSPIPacket()){
         spi_send_buff[0] = 255; //Set serial send header
         switch(spi_recv_buff[2]){
+            case CMD_GET_CARD_TYPE:
+                spi_send_buff[1] = 0;
+                spi_send_buff[2] = 3;
+                spi_send_buff[3] = 1;
+                spi_send_buff[4] = 1; //CARD TYPE FOR EMPIRE ID 1
+                sendSPIPacket(spi_recv_buff);
+                break;
             case CMD_GET_ENCODER:
-                LED(GREEN);
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
                 spi_send_buff[3] = 0;
@@ -193,11 +199,12 @@ void loop(){
                 break;
 
             case CMD_SET_PWM:
+                LED(GREEN);
                 if(spi_recv_buff[4]==0){
-                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(spi_recv_buff[5],servo_1_min_angle,servo_1_max_angle,servo_1_min_microseconds,servo_1_max_microseconds));
+                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_1_min_angle,servo_1_max_angle,servo_1_min_microseconds,servo_1_max_microseconds));
                 }
                 if(spi_recv_buff[4]==1){
-                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(spi_recv_buff[5],servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
+                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
                 }
                 sendSPIPacket(spi_recv_buff);
                 break;
@@ -221,6 +228,8 @@ void loop(){
                     servo_2_max_microseconds = servo_max_microseconds;
                 }
                 sendSPIPacket(spi_recv_buff);
+                break;
+            
             default:
                 break;
         }

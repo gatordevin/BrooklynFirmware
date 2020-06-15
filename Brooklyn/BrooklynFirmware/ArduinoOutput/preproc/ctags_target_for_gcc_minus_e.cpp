@@ -782,11 +782,7 @@ void avrisp() {
         Serial.print((char)0x15);
   }
 }
-
-
-
-
-
+# 888 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void controller_switch(){
   if(readSerialPacket()){
         ser_send_buff[0] = 255; //Set serial send header
@@ -799,6 +795,36 @@ void controller_switch(){
                 break;
 
             case 24: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
+                if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
+                    CopySPIToSer(); //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
+                    sendSerialPacket(ser_send_buff);
+                }else{
+                    LED(1); //If it failed we can do somethign different like specify the error message as a cehcksum error and the computer will decide wether it wants to ask for that data again
+                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                    ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                    ser_send_buff[3] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                    sendSerialPacket(ser_recv_buff);
+                }
+
+                break;
+
+            case 11: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
+                if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
+                    CopySPIToSer(); //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
+                    sendSerialPacket(ser_send_buff);
+                }else{
+                    LED(1); //If it failed we can do somethign different like specify the error message as a cehcksum error and the computer will decide wether it wants to ask for that data again
+                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                    ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                    ser_send_buff[3] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                    sendSerialPacket(ser_recv_buff);
+                }
+
+                break;
+
+            case 3: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
                 CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
                 if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
                     CopySPIToSer(); //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
