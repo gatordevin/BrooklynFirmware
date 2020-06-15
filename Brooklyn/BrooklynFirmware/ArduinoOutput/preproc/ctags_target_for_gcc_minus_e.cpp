@@ -38,6 +38,7 @@
 //
 
 # 40 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino" 2
+# 41 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino" 2
 //#undef SERIAL
 
 
@@ -57,7 +58,7 @@
 // Select hardware or software SPI, depending on SPI clock.
 // Currently only for AVR, for other architectures (Due, Zero,...), hardware SPI
 // is probably too fast anyway.
-# 68 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+# 69 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 // Configure which pins to use:
 
 // The standard pin configuration.
@@ -67,7 +68,7 @@
 // (using pin 11, 12 and 13 instead of the SPI header) on Leonardo, Due...
 
 // #define USE_OLD_STYLE_WIRING
-# 86 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+# 87 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 // HOODLOADER2 means running sketches on the ATmega16U2 serial converter chips
 // on Uno or Mega boards. We must use pins that are broken out:
 
@@ -76,7 +77,7 @@
 
 
 // By default, use hardware SPI pins:
-# 118 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+# 119 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 // Force bitbanged SPI if not using the hardware SPI pins:
 
 
@@ -124,8 +125,8 @@
 void pulse(int pin, int times);
 
 
-# 166 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino" 2
-# 224 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+# 167 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino" 2
+# 225 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void LED(uint8_t color){
     switch (color){
         case 1:
@@ -782,7 +783,8 @@ void avrisp() {
         Serial.print((char)0x15);
   }
 }
-# 888 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+# 889 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+String board_name;
 void controller_switch(){
   if(readSerialPacket()){
         ser_send_buff[0] = 255; //Set serial send header
@@ -791,6 +793,34 @@ void controller_switch(){
                 ser_send_buff[1] = 0;
                 ser_send_buff[2] = 72;
                 ser_send_buff[3] = 0;
+                sendSerialPacket(ser_send_buff);
+                break;
+
+            case 1: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                LED(3);
+                board_name = "";
+                for(int i=0;i<ser_recv_buff[3];i++){
+                  board_name = String(board_name + char(ser_recv_buff[4+i]));
+                }
+                EEPROM.put(0,board_name);
+                ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                ser_send_buff[2] = 1; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                ser_send_buff[3] = board_name.length(); //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                for(int i = 0; i< board_name.length(); i++){
+                  ser_send_buff[4+i] = board_name[i];
+                }
+                sendSerialPacket(ser_send_buff);
+                break;
+
+            case 2: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                LED(3);
+                EEPROM.get(0,board_name);
+                ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                ser_send_buff[3] = board_name.length(); //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                for(int i = 0; i< board_name.length(); i++){
+                  ser_send_buff[4+i] = board_name[i];
+                }
                 sendSerialPacket(ser_send_buff);
                 break;
 

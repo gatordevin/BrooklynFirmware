@@ -13,4 +13,5 @@
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/cores/arduino/USBDesc.h \
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/cores/arduino/USBCore.h \
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/variants/leonardo/pins_arduino.h \
+ /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/libraries/EEPROM/src/EEPROM.h \
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/libraries/SPI/src/SPI.h

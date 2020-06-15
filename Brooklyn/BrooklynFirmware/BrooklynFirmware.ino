@@ -37,6 +37,7 @@
 //
 
 #include "Arduino.h"
+#include <EEPROM.h>
 //#undef SERIAL
 
 
@@ -883,8 +884,9 @@ void avrisp() {
 #define CMD_SET_PWM 9
 #define CMD_SET_SERVO_RANGE 11
 #define CMD_GET_CARD_TYPE 3
-
-
+#define CMD_GET_BOARD_NAME 2
+#define CMD_SET_BOARD_NAME 1
+String board_name;
 void controller_switch(){
   if(readSerialPacket()){
         ser_send_buff[0] = 255; //Set serial send header
@@ -896,6 +898,34 @@ void controller_switch(){
                 sendSerialPacket(ser_send_buff);
                 break;
             
+            case CMD_SET_BOARD_NAME: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                LED(GREEN);
+                board_name = "";
+                for(int i=0;i<ser_recv_buff[3];i++){
+                  board_name = String(board_name + char(ser_recv_buff[4+i]));
+                }
+                EEPROM.put(0,board_name);
+                ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                ser_send_buff[2] = 1; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                ser_send_buff[3] = board_name.length(); //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                for(int i = 0; i< board_name.length(); i++){
+                  ser_send_buff[4+i] = board_name[i];
+                }
+                sendSerialPacket(ser_send_buff);
+                break;
+              
+            case CMD_GET_BOARD_NAME: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                LED(GREEN);
+                EEPROM.get(0,board_name);
+                ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                ser_send_buff[3] = board_name.length(); //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                for(int i = 0; i< board_name.length(); i++){
+                  ser_send_buff[4+i] = board_name[i];
+                }
+                sendSerialPacket(ser_send_buff);
+                break;
+              
             case CMD_GET_ENCODER: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
                 CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
                 if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum

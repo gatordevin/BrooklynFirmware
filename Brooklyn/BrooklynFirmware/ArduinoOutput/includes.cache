@@ -11,6 +11,11 @@
   },
   {
     "Sourcefile": "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/ArduinoOutput/sketch/BrooklynFirmware.ino.cpp",
+    "Include": "EEPROM.h",
+    "Includepath": "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/libraries/EEPROM/src"
+  },
+  {
+    "Sourcefile": "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/ArduinoOutput/sketch/BrooklynFirmware.ino.cpp",
     "Include": "SPI.h",
     "Includepath": "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/libraries/SPI/src"
   },

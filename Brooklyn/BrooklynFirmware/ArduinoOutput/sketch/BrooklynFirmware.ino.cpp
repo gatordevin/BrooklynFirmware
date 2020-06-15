@@ -38,6 +38,7 @@
 //
 
 #include "Arduino.h"
+#include <EEPROM.h>
 //#undef SERIAL
 
 
@@ -222,89 +223,89 @@ static BitBangedSPI SPIbit;
 #endif
 
 
-#line 224 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 225 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void LED(uint8_t color);
-#line 261 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 262 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void setup();
-#line 305 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 306 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void reset_target(bool reset);
-#line 310 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 311 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void loop(void);
-#line 343 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 344 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 bool readSerialPacket();
-#line 363 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 364 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void sendSerialPacket(uint8_t send_buff[]);
-#line 376 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 377 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t readByte();
-#line 382 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 383 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void CopySerToSPI();
-#line 388 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 389 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void CopySPIToSer();
-#line 394 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 395 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t SPISend(uint8_t SSpin, uint8_t data);
-#line 402 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 403 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 bool SPISendPacket(uint8_t SSpin);
-#line 417 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 418 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 bool SPIRecvPacket(uint8_t SSpin);
-#line 435 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 436 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 bool verifyChecksum(uint8_t recv_buff[]);
-#line 445 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 446 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void calculateChecksum(uint8_t data_buff[]);
-#line 458 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 459 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t getch();
-#line 462 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 463 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void fill(int n);
-#line 479 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 480 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d);
-#line 486 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 487 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void empty_reply();
-#line 496 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 497 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void breply(uint8_t b);
-#line 507 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 508 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void get_version(uint8_t c);
-#line 526 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 527 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void set_parameters();
-#line 553 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 554 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void start_pmode();
-#line 583 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 584 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void start_cmode();
-#line 588 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 589 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void end_pmode();
-#line 599 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 600 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void end_cmode();
-#line 603 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 604 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void universal();
-#line 611 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 612 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void flash(uint8_t hilo, unsigned int addr, uint8_t data);
-#line 617 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 618 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void commit(unsigned int addr);
-#line 626 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 627 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 unsigned int current_page();
-#line 643 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 644 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void write_flash(int length);
-#line 654 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 655 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t write_flash_pages(int length);
-#line 673 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 674 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t write_eeprom(unsigned int length);
-#line 690 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 691 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t write_eeprom_chunk(unsigned int start, unsigned int length);
-#line 701 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 702 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void program_page();
-#line 726 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 727 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 uint8_t flash_read(uint8_t hilo, unsigned int addr);
-#line 733 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 734 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 char flash_read_page(int length);
-#line 744 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 745 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 char eeprom_read_page(int length);
-#line 755 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 756 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void read_page();
-#line 771 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 772 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void read_signature();
-#line 792 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 793 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void avrisp();
-#line 888 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 890 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void controller_switch();
-#line 224 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
+#line 225 "/home/techgarage/BrooklynFirmware/Brooklyn/BrooklynFirmware/BrooklynFirmware.ino"
 void LED(uint8_t color){
     switch (color){
         case RED:
@@ -967,8 +968,9 @@ void avrisp() {
 #define CMD_SET_PWM 9
 #define CMD_SET_SERVO_RANGE 11
 #define CMD_GET_CARD_TYPE 3
-
-
+#define CMD_GET_BOARD_NAME 2
+#define CMD_SET_BOARD_NAME 1
+String board_name;
 void controller_switch(){
   if(readSerialPacket()){
         ser_send_buff[0] = 255; //Set serial send header
@@ -980,6 +982,34 @@ void controller_switch(){
                 sendSerialPacket(ser_send_buff);
                 break;
             
+            case CMD_SET_BOARD_NAME: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                LED(GREEN);
+                board_name = "";
+                for(int i=0;i<ser_recv_buff[3];i++){
+                  board_name = String(board_name + char(ser_recv_buff[4+i]));
+                }
+                EEPROM.put(0,board_name);
+                ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                ser_send_buff[2] = 1; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                ser_send_buff[3] = board_name.length(); //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                for(int i = 0; i< board_name.length(); i++){
+                  ser_send_buff[4+i] = board_name[i];
+                }
+                sendSerialPacket(ser_send_buff);
+                break;
+              
+            case CMD_GET_BOARD_NAME: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
+                LED(GREEN);
+                EEPROM.get(0,board_name);
+                ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+                ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+                ser_send_buff[3] = board_name.length(); //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+                for(int i = 0; i< board_name.length(); i++){
+                  ser_send_buff[4+i] = board_name[i];
+                }
+                sendSerialPacket(ser_send_buff);
+                break;
+              
             case CMD_GET_ENCODER: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
                 CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
                 if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
