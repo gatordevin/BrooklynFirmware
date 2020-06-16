@@ -1,5 +1,8 @@
 #include <SPI.h>
 #include <Servo.h>
+#include <AutoPID.h>
+#include <Encoder.h>
+
 
 #define RED 1
 #define BLUE 2
@@ -26,6 +29,30 @@ int servo_2_max_angle = 180;
 int servo_2_min_microseconds = 1000;
 int servo_2_max_microseconds = 2000;
 
+#define outputMin 0
+#define outputMax 255
+
+double Kp = .08;
+double Ki = 0.00;
+double Kd = 0.00;
+double velocity = 0;
+double setpoint = 0;
+double output = 0;
+double speed_output = 0;
+double previous_pos = 0;
+double previous_time = 0;
+double encoder_pos = 0;
+double input = 0;
+int Mspeed = 0;
+int Mdir = 0;
+
+Encoder Enc1(2,3);
+AutoPID posPID(&encoder_pos, &setpoint, &output, -255.0, 255.0, Kp, Ki, Kd);
+AutoPID speedPID(&velocity, &setpoint, &speed_output, -255.0, 255.0, Kp, Ki, Kd);
+
+
+
+
 
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
@@ -36,10 +63,66 @@ volatile int ridx = 0;
 uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
 
-#define CMD_GET_ENCODER 24
-#define CMD_SET_PWM 9
 #define CMD_GET_CARD_TYPE 3
+#define CMD_SET_PWM 9
 #define CMD_SET_SERVO_RANGE 11
+#define CMD_GET_ENCODER 24
+#define CMD_MOTOR_PWM 25
+#define CMD_PID_SETPOINT 26
+#define CMD_READ_SPEED 27
+#define CMD_PID_SPEED 28
+#define CMD_PID_CONSTANTS 29
+
+int data_array[3];
+void decTo256(int n) 
+{ 
+     
+    // array to store octal number 
+    
+  
+    // counter for octal number array 
+    int i = 0; 
+    while (n != 0) { 
+  
+        // storing remainder in octal array 
+        data_array[i] = n % 255; 
+        n = n / 255; 
+        i++; 
+    }
+    
+  
+    // printing octal number array in reverse order 
+   
+} 
+
+void Mset(int MotorDirection, int MotorSpeed){
+  if(MotorSpeed < 25){
+    MotorSpeed = 0;
+  }
+  if(MotorDirection == 0){
+    analogWrite(5,0);
+    analogWrite(6,0);
+  }else if(MotorDirection == 1){
+    analogWrite(5,MotorSpeed);
+    analogWrite(6,0);
+  }else if(MotorDirection == 2){
+    analogWrite(5,0);
+    analogWrite(6,MotorSpeed);
+  }else{
+    analogWrite(5,0);
+    analogWrite(6,0);
+  }
+}
+
+double calculateSpeed(){
+  double newposition = Enc1.read();
+  double newtime = millis();
+  double vel = (newposition-previous_pos)/(newtime/previous_time);
+  previous_pos = newposition;
+  previous_time = newtime;
+  return vel;
+}
+
 
 void LED(uint8_t color){
     switch (color){
@@ -179,6 +262,14 @@ int ToDec(uint8_t lsb, uint8_t msb){
  
   return bigNumber;
 }
+int negitive_check(int x){
+  if(abs(x) == x){
+    return 0;
+  }else{
+    return 1;
+  }
+}
+
 
 void loop(){
     if(readSPIPacket()){
@@ -191,12 +282,128 @@ void loop(){
                 spi_send_buff[4] = 1; //CARD TYPE FOR EMPIRE ID 1
                 sendSPIPacket(spi_recv_buff);
                 break;
-            case CMD_GET_ENCODER:
+             case CMD_GET_ENCODER:
+                
+                LED(GREEN);
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
-                spi_send_buff[3] = 0;
+                spi_send_buff[3] = 3;
+                
+                encoder_pos = Enc1.read();
+                decTo256(abs(encoder_pos));
+                if(abs(encoder_pos) < 256){
+                  data_array[1] = 0; 
+                }
+                spi_send_buff[4] = data_array[0];
+                spi_send_buff[5] = data_array[1];
+                spi_send_buff[6] = negitive_check(encoder_pos);
+                sendSPIPacket(spi_send_buff);
+                break;
+            case CMD_MOTOR_PWM:
+                
+                
+                LED(GREEN);
+                spi_send_buff[1] = 1;
+                spi_send_buff[2] = 5;
+                spi_send_buff[3] = 3;
+                encoder_pos = Enc1.read();
+                decTo256(abs(encoder_pos));
+                if(abs(encoder_pos) < 256){
+                  data_array[1] = 0; 
+                }
+                spi_send_buff[4] = data_array[0];
+                spi_send_buff[5] = data_array[1];
+                spi_send_buff[6] = negitive_check(encoder_pos);
+                
+                Mset(spi_recv_buff[4], spi_recv_buff[5]); 
+                
+                
+                sendSPIPacket(spi_send_buff);
+                break;
+
+            case CMD_PID_CONSTANTS:
+                LED(GREEN);
+                spi_send_buff[1] = 1;
+                spi_send_buff[2] = 5;
+                spi_send_buff[3] = 6;
+
+                posPID.setGains(ToDec(spi_recv_buff[4], spi_recv_buff[5])/1000,ToDec(spi_recv_buff[6], spi_recv_buff[7])/1000,ToDec(spi_recv_buff[8], spi_recv_buff[9])/1000);
+
+                
+
+
                 sendSPIPacket(spi_recv_buff);
                 break;
+
+
+            case CMD_PID_SETPOINT:
+                LED(GREEN);
+                spi_send_buff[1] = 1;
+                spi_send_buff[2] = 5;
+                spi_send_buff[3] = 3;
+
+                encoder_pos = Enc1.read();
+                setpoint = spi_recv_buff[4];
+                posPID.run();
+                if(abs(output) != output){
+                  output = output*-1;
+                  Mset(1,output);
+                }else{
+                  Mset(2,output);
+                }
+                decTo256(abs(encoder_pos));
+                if(abs(encoder_pos) < 256){
+                  data_array[1] = 0; 
+                }
+                spi_send_buff[4] = data_array[0];
+                spi_send_buff[5] = data_array[1];
+                spi_send_buff[6] = negitive_check(encoder_pos);
+
+                sendSPIPacket(spi_send_buff);
+                break;
+
+            
+                
+            case CMD_READ_SPEED:
+                LED(GREEN);
+                spi_send_buff[1] = 1;
+                spi_send_buff[2] = 5;
+                spi_send_buff[3] = 2;
+                
+                velocity = calculateSpeed();
+                
+                spi_send_buff[4] = abs(velocity);
+                spi_send_buff[5] = negitive_check(velocity);
+                
+                sendSPIPacket(spi_send_buff);
+                break;
+
+            case CMD_PID_SPEED:
+                LED(GREEN);
+                spi_send_buff[1] = 1;
+                spi_send_buff[2] = 5;
+                spi_send_buff[3] = 2;
+                
+                velocity = calculateSpeed();
+            
+
+                setpoint = spi_recv_buff[4];
+                speedPID.run();
+                if(abs(speed_output) != speed_output){
+                  speed_output = speed_output*-1;
+                  Mset(1,speed_output);
+                }else{
+                  Mset(2,speed_output);
+                }
+                
+                spi_send_buff[4] = abs(velocity);
+                spi_send_buff[5] = negitive_check(velocity);
+                
+                
+                sendSPIPacket(spi_send_buff);
+                break;
+                
+            
 
             case CMD_SET_PWM:
                 LED(GREEN);
