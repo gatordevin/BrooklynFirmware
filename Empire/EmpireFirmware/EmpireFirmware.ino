@@ -9,6 +9,10 @@
 #define GREEN 3
 #define OFF 4
 
+#define MAX_PWM 2150
+#define MAX_PWM 1500
+#define MIN_PWM 850
+
 #define red_pin 0
 #define blue_pin A2
 #define green_pin A3
@@ -45,6 +49,7 @@ double encoder_pos = 0;
 double input = 0;
 int Mspeed = 0;
 int Mdir = 0;
+int Kz = 0;
 
 Encoder Enc1(2,3);
 AutoPID posPID(&encoder_pos, &setpoint, &output, -255.0, 255.0, Kp, Ki, Kd);
@@ -63,6 +68,7 @@ volatile int ridx = 0;
 uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
 
+#define TEST 4
 #define CMD_GET_CARD_TYPE 3
 #define CMD_SET_PWM 9
 #define CMD_SET_SERVO_RANGE 11
@@ -269,12 +275,27 @@ int negitive_check(int x){
     return 1;
   }
 }
+void integralZone(double setpoint, double in,  int zone){
+  if(abs(setpoint-in) > zone){
+    posPID.setGains(Kp,0.00,Kd);
+  }else{
+    posPID.setGains(Kp,Ki,Kd);
+  }
+  
+}
 
 
 void loop(){
     if(readSPIPacket()){
         spi_send_buff[0] = 255; //Set serial send header
         switch(spi_recv_buff[2]){
+          case TEST:
+                spi_send_buff[1] = 1;
+                spi_send_buff[2] = 5;
+                spi_send_buff[3] = 0;
+               
+                sendSPIPacket(spi_recv_buff);
+                break;
             case CMD_GET_CARD_TYPE:
                 spi_send_buff[1] = 0;
                 spi_send_buff[2] = 3;
@@ -325,16 +346,18 @@ void loop(){
                 LED(GREEN);
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
-                spi_send_buff[3] = 6;
-
-                posPID.setGains(ToDec(spi_recv_buff[4], spi_recv_buff[5])/1000,ToDec(spi_recv_buff[6], spi_recv_buff[7])/1000,ToDec(spi_recv_buff[8], spi_recv_buff[9])/1000);
-
+                spi_send_buff[3] = 7;
+                Kp = (ToDec(spi_recv_buff[4], spi_recv_buff[5]))/(double)1000;
+                Ki = (ToDec(spi_recv_buff[6], spi_recv_buff[7]))/(double)1000;
+                Kd = (ToDec(spi_recv_buff[8], spi_recv_buff[9]))/(double)1000;
+                Kz = spi_recv_buff[10];
+                posPID.setGains(Kp,Ki,Kd);
                 
+               
 
 
                 sendSPIPacket(spi_recv_buff);
                 break;
-
 
             case CMD_PID_SETPOINT:
                 LED(GREEN);
@@ -343,7 +366,8 @@ void loop(){
                 spi_send_buff[3] = 3;
 
                 encoder_pos = Enc1.read();
-                setpoint = spi_recv_buff[4];
+                setpoint = ToDec(spi_recv_buff[4], spi_recv_buff[5]);
+                integralZone(setpoint,encoder_pos, Kz);
                 posPID.run();
                 if(abs(output) != output){
                   output = output*-1;
@@ -355,13 +379,13 @@ void loop(){
                 if(abs(encoder_pos) < 256){
                   data_array[1] = 0; 
                 }
+                //spi_send_buff[4] = output;
                 spi_send_buff[4] = data_array[0];
                 spi_send_buff[5] = data_array[1];
                 spi_send_buff[6] = negitive_check(encoder_pos);
-
+                
                 sendSPIPacket(spi_send_buff);
                 break;
-
             
                 
             case CMD_READ_SPEED:
