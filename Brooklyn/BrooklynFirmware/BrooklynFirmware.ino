@@ -68,6 +68,7 @@
 #endif
 // Configure which pins to use:
 
+
 // The standard pin configuration.
 #ifndef ARDUINO_HOODLOADER2
 
@@ -879,6 +880,10 @@ void avrisp() {
   }
 }
 
+#define CMD_MOTOR_PWM 25
+#define CMD_PID_SETPOINT 26
+#define CMD_READ_SPEED 27
+#define CMD_PID_SPEED 28
 #define CMD_HB 72
 #define CMD_GET_ENCODER 24
 #define CMD_SET_PWM 9
