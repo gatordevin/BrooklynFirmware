@@ -79,6 +79,8 @@ uint8_t checksum2 = 0;
 #define CMD_PID_SPEED 28
 #define CMD_PID_CONSTANTS 29
 #define CMD_SET_CPR 23
+#define CMD_ZERO_ENCODER 30
+
 
 int data_array[3];
 void decTo256(int n) 
@@ -286,7 +288,7 @@ void loop(){
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
                 spi_send_buff[3] = 0;
-               
+                servo_1.writeMicroseconds(2100);
                 sendSPIPacket(spi_recv_buff);
                 break;
             case CMD_GET_CARD_TYPE:
@@ -340,9 +342,9 @@ void loop(){
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
                 spi_send_buff[3] = 7;
-                Kp = (ToDec(spi_recv_buff[4], spi_recv_buff[5]))/(double)1000;
-                Ki = (ToDec(spi_recv_buff[6], spi_recv_buff[7]))/(double)1000;
-                Kd = (ToDec(spi_recv_buff[8], spi_recv_buff[9]))/(double)1000;
+                Kp = (ToDec(spi_recv_buff[4], spi_recv_buff[5]))/(double)10000;
+                Ki = (ToDec(spi_recv_buff[6], spi_recv_buff[7]))/(double)10000;
+                Kd = (ToDec(spi_recv_buff[8], spi_recv_buff[9]))/(double)10000;
                 Kz = spi_recv_buff[10];
                 posPID.setGains(Kp,Ki,Kd);
                 
@@ -363,8 +365,8 @@ void loop(){
                 integralZone(setpoint,encoder_pos, Kz);
                 posPID.run();
                 if(abs(output) != output){
-                  output = output*-1;
-                  Mset(1,output);
+                  int temp = output*-1;
+                  Mset(1,temp);
                 }else{
                   Mset(2,output);
                 }
@@ -431,6 +433,11 @@ void loop(){
                 }
                 sendSPIPacket(spi_recv_buff);
                 break;
+                
+            case CMD_ZERO_ENCODER:
+                Enc1.write(0);
+
+            
 
             case CMD_SET_SERVO_RANGE:
                 int servo_min_angle = ToDec(spi_recv_buff[5], spi_recv_buff[6]);
