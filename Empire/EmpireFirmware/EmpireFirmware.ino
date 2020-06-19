@@ -78,6 +78,7 @@ uint8_t checksum2 = 0;
 #define CMD_READ_SPEED 27
 #define CMD_PID_SPEED 28
 #define CMD_PID_CONSTANTS 29
+#define CMD_SET_CPR 23
 
 int data_array[3];
 void decTo256(int n) 
