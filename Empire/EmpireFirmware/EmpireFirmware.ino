@@ -250,18 +250,10 @@ void setup(){
     SPCR |= _BV(SPIE);      //we not using SPI.attachInterrupt() why?
     LED(BLUE);
     sei();
-    servo_1.write(0);
 }
 
 long convertToPWM(long angle, long minAngle, long maxAngle, long minPWM, long maxPWM){
-  //long valuePWM = map(angle,minAngle,maxAngle,minPWM,maxPWM);
-  int valuePWM = angle*(maxPWM/maxAngle);
-  //int valuePWM = angle * (2450/maxAngle);
-//  if(valuePWM==1980){
-//   LED(RED);
-//  }else if(valuePWM==2449){
-//   LED(GREEN);
-//  }
+  long valuePWM = map(angle,minAngle,maxAngle,minPWM,maxPWM);
   return valuePWM;
 }
 
@@ -432,7 +424,6 @@ void loop(){
             
 
             case CMD_SET_PWM:
-                LED(GREEN);
                 if(spi_recv_buff[4]==0){
                     servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_1_min_angle,servo_1_max_angle,servo_1_min_microseconds,servo_1_max_microseconds));
                 }
