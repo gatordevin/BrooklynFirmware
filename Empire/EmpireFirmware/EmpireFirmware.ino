@@ -479,7 +479,7 @@ void loop(){
                 }
                 sendSPIPacket(spi_recv_buff);
                 break;
-            
+
             default:
                 LED(BLUE);
                 break;
