@@ -24,6 +24,12 @@ Servo servo_1;
 Servo servo_2;
 Servo servos[2] = {servo_1,servo_2};
 
+const int trigPin = 3;
+const int echoPin = 2;
+
+float duration;
+int distance;
+
 int servo_1_min_angle = 0;
 int servo_1_max_angle = 180;
 int servo_1_min_microseconds = 1000;
@@ -54,6 +60,7 @@ double input = 0;
 int Mspeed = 0;
 int Mdir = 0;
 int Kz = 0;
+int breakOrCoast = 0;
 
 Encoder Enc1(2,3);
 AutoPID posPID(&encoder_pos, &setpoint, &output, -255.0, 255.0, Kp, Ki, Kd);
@@ -83,7 +90,8 @@ uint8_t checksum2 = 0;
 #define CMD_PID_SPEED 28
 #define CMD_PID_CONSTANTS 29
 #define CMD_ZERO_ENCODER 30
-#define CMD_HOME_MOTOR 32
+#define CMD_GET_ULTRASONIC 40
+
 
 
 int data_array[3];
@@ -113,8 +121,9 @@ void Mset(int MotorDirection, int MotorSpeed){
     MotorSpeed = 0;
   }
   if(MotorDirection == 0){
-    analogWrite(5,0);
-    analogWrite(6,0);
+     analogWrite(5,0);
+     analogWrite(6,0);
+   
   }else if(MotorDirection == 1){
     analogWrite(5,MotorSpeed);
     analogWrite(6,0);
@@ -248,6 +257,10 @@ void setup(){
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
     pinMode(MISO,OUTPUT);
+
+    pinMode(trigPin, OUTPUT);
+    pinMode(echoPin, INPUT);
+    previous_time = millis();
     servo_1.attach(servo_1_pin);
     servo_2.attach(servo_2_pin);
     SPCR |= _BV(SPE);
@@ -289,19 +302,41 @@ void integralZone(double setpoint, double in,  int zone){
   }
   
 }
+int get_ultra_value(){
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  duration = pulseIn(echoPin, HIGH, 0.01);
+  distance = (duration*.0343)/2;
+  
+  if(distance > 255){
+    distance = 0;
+  }
+  return distance;
+}
 
 
 void loop(){
+    
     if(readSPIPacket()){
         spi_send_buff[0] = 255; //Set serial send header
         switch(spi_recv_buff[2]){
-          case TEST:
+            case TEST:
+                LED(GREEN);
+                
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
-                spi_send_buff[3] = 0;
-                servo_1.writeMicroseconds(2100);
-                sendSPIPacket(spi_recv_buff);
+                spi_send_buff[3] = 1;
+                
+                distance = get_ultra_value();
+                spi_send_buff[4] = distance;
+                
+                sendSPIPacket(spi_send_buff);
                 break;
+                
             case CMD_GET_CARD_TYPE:
                 spi_send_buff[1] = 0;
                 spi_send_buff[2] = 3;
@@ -479,7 +514,28 @@ void loop(){
                 }
                 sendSPIPacket(spi_recv_buff);
                 break;
+            case CMD_GET_ULTRASONIC:
+                LED(GREEN);
+                spi_send_buff[1] = 1;
+                spi_send_buff[2] = 5;
+                spi_send_buff[3] = 1;
+                digitalWrite(trigPin, LOW);
+                delayMicroseconds(2);
+                digitalWrite(trigPin, HIGH);
+                delayMicroseconds(10);
+                digitalWrite(trigPin, LOW);
 
+                duration = pulseIn(echoPin, HIGH);
+                distance = (duration*.0343)/2;
+                if(distance > 255){
+                  distance = 0;
+                }
+                
+                spi_send_buff[4] = distance;
+                sendSPIPacket(spi_send_buff);
+                break;
+                
+            
             default:
                 LED(BLUE);
                 break;
