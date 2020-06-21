@@ -3,14 +3,17 @@
         {
             "name": "Win32",
             "includePath": [
-                "C:\\Program Files (x86)\\Arduino\\tools\\**",
-                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**",
-                "C:\\Arduino\\hardware\\arduino\\avr\\**",
-                "C:\\Arduino\\tools\\**"
+                "D:/Arduino/tools/**",
+                "D:/Arduino/hardware/arduino/avr/**",
+                "D:/Arduino/hardware/arduino/avr/**",
+                "D:/Arduino/tools/**",
+                "D:\\Arduino\\hardware\\arduino\\avr\\**",
+                "D:\\Arduino\\tools\\**"
             ],
             "forcedInclude": [
-                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h",
-                "C:\\Arduino\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
+                "D:/Arduino/hardware/arduino/avr/cores/arduino/Arduino.h",
+                "D:/Arduino/hardware/arduino/avr/cores/arduino/Arduino.h",
+                "D:\\Arduino\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
             ],
             "intelliSenseMode": "msvc-x64",
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/VC/Tools/MSVC/14.16.27023/bin/Hostx64/x64/cl.exe",
