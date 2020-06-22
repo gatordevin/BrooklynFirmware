@@ -92,7 +92,7 @@ uint8_t checksum2 = 0;
 #define CMD_PID_CONSTANTS 29
 #define CMD_ZERO_ENCODER 30
 #define CMD_GET_ULTRASONIC 40
-#define CMD_SET_CPR 23
+#define CMD_SET_TPR 23
 
 
 
@@ -410,7 +410,7 @@ void loop(){
 
                 encoder_pos = Enc1.read();
                 setpoint = ToDecNeg(spi_recv_buff[4], spi_recv_buff[5], spi_recv_buff[6]);
-                setpoint = setpoint * motorCpr
+                setpoint = setpoint * (motorTpr / 360)
                 integralZone(setpoint, encoder_pos, Kz);
                 posPID.run();
                 if(abs(output) != output){
@@ -538,8 +538,8 @@ void loop(){
                 sendSPIPacket(spi_send_buff);
                 break;
                 
-            case CMD_SET_CPR:
-              motorCpr = ToDec(spi_recv_buff[3], spi_recv_buff[4]);
+            case CMD_SET_TPR:
+              motorTpr = ToDec(spi_recv_buff[3], spi_recv_buff[4]);
               sendSPIPacket(spi_send_buff);
               break;
 
