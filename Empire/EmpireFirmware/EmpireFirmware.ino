@@ -61,7 +61,7 @@ int Mspeed = 0;
 int Mdir = 0;
 int Kz = 0;
 int breakOrCoast = 0;
-int motorCpr = 0;
+int motorTpr = 0;
 
 Encoder Enc1(2,3);
 AutoPID posPID(&encoder_pos, &setpoint, &output, -255.0, 255.0, Kp, Ki, Kd);
@@ -540,7 +540,8 @@ void loop(){
                 
             case CMD_SET_TPR:
               motorTpr = ToDec(spi_recv_buff[3], spi_recv_buff[4]);
-              sendSPIPacket(spi_send_buff);
+              if(motorTpr)
+              sendSPIPacket(spi_recv_buff);
               break;
 
             default:
