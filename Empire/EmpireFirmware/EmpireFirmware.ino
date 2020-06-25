@@ -2,6 +2,7 @@
 #include <Servo.h>
 #include <AutoPID.h>
 #include <Encoder.h>
+#include <exception>
 
 
 #define RED 1
@@ -74,6 +75,7 @@ AutoPID speedPID(&velocity, &setpoint, &speed_output, -255.0, 255.0, Kp, Ki, Kd)
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
 uint8_t spi_send_buff[20];
+uint8_t resp_buff[20];
 volatile int idx = 0;
 volatile int ridx = 0;
 
@@ -289,7 +291,7 @@ int ToDecNeg(int lsb, int msb, int neg){
   }
   return bigNumber;
 }
-int negitive_check(int x){
+int negative_check(int x){
   if(abs(x) == x){
     return 0;
   }else{
@@ -320,6 +322,18 @@ int get_ultra_value(){
   return distance;
 }
 
+void response_packet(bool success, double data) {
+  if(success) {
+    resp_buff[1] = 1
+  } else {
+    resp_buff[1] = 0
+  }
+  resp_buff[2] = 5
+  decTo256(data);
+  for(int i = 0; i < data_array.length; i++) {
+    resp_buff[i+3] = data_array[i]
+  }
+}
 
 void loop(){
     
@@ -346,6 +360,7 @@ void loop(){
                 spi_send_buff[4] = 1; //CARD TYPE FOR EMPIRE ID 1
                 sendSPIPacket(spi_recv_buff);
                 break;
+
              case CMD_GET_ENCODER:
                 
                 LED(GREEN);
@@ -360,7 +375,7 @@ void loop(){
                 }
                 spi_send_buff[4] = data_array[0];
                 spi_send_buff[5] = data_array[1];
-                spi_send_buff[6] = negitive_check(encoder_pos);
+                spi_send_buff[6] = negative_check(encoder_pos);
                 sendSPIPacket(spi_send_buff);
                 break;
             case CMD_MOTOR_PWM:
@@ -377,7 +392,7 @@ void loop(){
                 }
                 spi_send_buff[4] = data_array[0];
                 spi_send_buff[5] = data_array[1];
-                spi_send_buff[6] = negitive_check(encoder_pos);
+                spi_send_buff[6] = negative_check(encoder_pos);
                 
                 Mset(spi_recv_buff[4], spi_recv_buff[5]); 
                 
@@ -398,8 +413,8 @@ void loop(){
                 
                
 
-
-                sendSPIPacket(spi_recv_buff);
+                response_packet(true, [Kp, Ki, Kd, Kz]);
+                sendSPIPacket(resp_buff);
                 break;
 
             case CMD_PID_SETPOINT:
@@ -426,7 +441,7 @@ void loop(){
                 //spi_send_buff[4] = output;
                 spi_send_buff[4] = data_array[0];
                 spi_send_buff[5] = data_array[1];
-                spi_send_buff[6] = negitive_check(encoder_pos);
+                spi_send_buff[6] = negative_check(encoder_pos);
                 
                 sendSPIPacket(spi_send_buff);
                 break;
@@ -447,7 +462,7 @@ void loop(){
                 //spi_send_buff[4] = output;
                 spi_send_buff[4] = data_array[0];
                 spi_send_buff[5] = data_array[1];
-                spi_send_buff[6] = negitive_check(velocity);
+                spi_send_buff[6] = negative_check(velocity);
                 
                 sendSPIPacket(spi_send_buff);
                 break;
@@ -471,7 +486,7 @@ void loop(){
                 }
                 
                 spi_send_buff[4] = abs(velocity);
-                spi_send_buff[5] = negitive_check(velocity);
+                spi_send_buff[5] = negative_check(velocity);
                 
                 
                 sendSPIPacket(spi_send_buff);
@@ -486,13 +501,15 @@ void loop(){
                 if(spi_recv_buff[4]==1){
                     servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
                 }
-                sendSPIPacket(spi_recv_buff);
+                response_packet(1, [0])
+                sendSPIPacket(resp_buff);
                 break;
                 
             case CMD_ZERO_ENCODER:
                 LED(GREEN);
                 Enc1.write(0);
-                sendSPIPacket(spi_recv_buff);
+                response_packet(true, [0])
+                sendSPIPacket(resp_buff);
                 break;
 
             
@@ -515,7 +532,8 @@ void loop(){
                     servo_2_min_microseconds = servo_min_microseconds;
                     servo_2_max_microseconds = servo_max_microseconds;
                 }
-                sendSPIPacket(spi_recv_buff);
+                response_packet(true, [0])
+                sendSPIPacket(resp_buff);
                 break;
             case CMD_GET_ULTRASONIC:
                 LED(GREEN);
@@ -540,8 +558,8 @@ void loop(){
                 
             case CMD_SET_TPR:
               motorTpr = ToDec(spi_recv_buff[3], spi_recv_buff[4]);
-              if(motorTpr)
-              sendSPIPacket(spi_recv_buff);
+              response_packet(true, [spi_recv_buff[3], spi_recv_buff[4]])
+              sendSPIPacket(resp_buff);
               break;
 
             default:
