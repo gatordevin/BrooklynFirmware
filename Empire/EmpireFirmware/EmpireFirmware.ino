@@ -24,11 +24,6 @@ Servo servo_1;
 Servo servo_2;
 Servo servos[2] = {servo_1,servo_2};
 
-const int trigPin = 3;
-const int echoPin = 2;
-
-float duration;
-int distance;
 
 int servo_1_min_angle = 0;
 int servo_1_max_angle = 180;
@@ -91,7 +86,6 @@ uint8_t checksum2 = 0;
 #define CMD_PID_SPEED 28
 #define CMD_PID_CONSTANTS 29
 #define CMD_ZERO_ENCODER 30
-#define CMD_GET_ULTRASONIC 40
 #define CMD_SET_TPR 23
 
 
@@ -260,8 +254,7 @@ void setup(){
     pinMode(green_pin, OUTPUT);
     pinMode(MISO,OUTPUT);
 
-    pinMode(trigPin, OUTPUT);
-    pinMode(echoPin, INPUT);
+   
     previous_time = millis();
     servo_1.attach(servo_1_pin);
     servo_2.attach(servo_2_pin);
@@ -304,39 +297,19 @@ void integralZone(double setpoint, double in,  int zone){
   }
   
 }
-int get_ultra_value(){
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  
-  duration = pulseIn(echoPin, HIGH, 0.01);
-  distance = (duration*.0343)/2;
-  
-  if(distance > 255){
-    distance = 0;
-  }
-  return distance;
-}
+
 
 
 void loop(){
-    
     if(readSPIPacket()){
         spi_send_buff[0] = 255; //Set serial send header
         switch(spi_recv_buff[2]){
             case TEST:
                 LED(GREEN);
                 
-                spi_send_buff[1] = 1;
-                spi_send_buff[2] = 5;
-                spi_send_buff[3] = 1;
                 
-                distance = get_ultra_value();
-                spi_send_buff[4] = distance;
                 
-                sendSPIPacket(spi_send_buff);
+                sendSPIPacket(spi_recv_buff);
                 break;
                 
             case CMD_GET_CARD_TYPE:
@@ -410,7 +383,7 @@ void loop(){
 
                 encoder_pos = Enc1.read();
                 setpoint = ToDecNeg(spi_recv_buff[4], spi_recv_buff[5], spi_recv_buff[6]);
-                setpoint = setpoint * (motorTpr / 360)
+                setpoint = setpoint * (motorTpr / 360);
                 integralZone(setpoint, encoder_pos, Kz);
                 posPID.run();
                 if(abs(output) != output){
@@ -517,33 +490,14 @@ void loop(){
                 }
                 sendSPIPacket(spi_recv_buff);
                 break;
-            case CMD_GET_ULTRASONIC:
-                LED(GREEN);
-                spi_send_buff[1] = 1;
-                spi_send_buff[2] = 5;
-                spi_send_buff[3] = 1;
-                digitalWrite(trigPin, LOW);
-                delayMicroseconds(2);
-                digitalWrite(trigPin, HIGH);
-                delayMicroseconds(10);
-                digitalWrite(trigPin, LOW);
-
-                duration = pulseIn(echoPin, HIGH);
-                distance = (duration*.0343)/2;
-                if(distance > 255){
-                  distance = 0;
-                }
-                
-                spi_send_buff[4] = distance;
-                sendSPIPacket(spi_send_buff);
-                break;
-                
+           
+            /*    
             case CMD_SET_TPR:
               motorTpr = ToDec(spi_recv_buff[3], spi_recv_buff[4]);
               if(motorTpr)
-              sendSPIPacket(spi_recv_buff);
+                sendSPIPacket(spi_recv_buff);
               break;
-
+            */
             default:
                 LED(BLUE);
                 break;
