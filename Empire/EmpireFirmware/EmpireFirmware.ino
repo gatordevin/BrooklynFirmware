@@ -553,12 +553,13 @@ void loop(){
                 }
                 
                 spi_send_buff[4] = distance;
-                sendSPIPacket(spi_send_buff);
+                response_packet(true, spi_send_buff[4])
+                sendSPIPacket(resp_buff);
                 break;
                 
             case CMD_SET_TPR:
               motorTpr = ToDec(spi_recv_buff[3], spi_recv_buff[4]);
-              response_packet(true, [spi_recv_buff[3], spi_recv_buff[4]])
+              response_packet(true, 0)
               sendSPIPacket(resp_buff);
               break;
 
