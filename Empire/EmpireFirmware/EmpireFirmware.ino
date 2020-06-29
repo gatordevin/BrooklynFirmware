@@ -491,13 +491,16 @@ void loop(){
                 sendSPIPacket(spi_recv_buff);
                 break;
            
-            /*    
+             
             case CMD_SET_TPR:
               motorTpr = ToDec(spi_recv_buff[3], spi_recv_buff[4]);
-              if(motorTpr)
+              if(motorTpr){
                 sendSPIPacket(spi_recv_buff);
+              }else{
+                sendSPIPacket(spi_recv_buff);
+              }
               break;
-            */
+            
             default:
                 LED(BLUE);
                 break;
