@@ -2,7 +2,7 @@
 #include <Servo.h>
 #include <AutoPID.h>
 #include <Encoder.h>
-#include <exception>
+
 
 
 #define RED 1
@@ -303,14 +303,17 @@ void integralZone(double setpoint, double in,  int zone){
 
 void response_packet(bool success, double data) {
   if(success) {
-    resp_buff[1] = 1
+    resp_buff[1] = 1;
   } else {
-    resp_buff[1] = 0
+    resp_buff[1] = 0;
   }
-  resp_buff[2] = 5
+  resp_buff[2] = 5;
   decTo256(data);
-  for(int i = 0; i < data_array.length; i++) {
-    resp_buff[i+3] = data_array[i]
+  if(abs(data) < 256){
+    data_array[1] = 0; 
+  }
+  for(int i = 0; i < sizeof(data_array)/sizeof(data_array[0]); i++) {
+    resp_buff[i+3] = data_array[i];
   }
 }
 
@@ -386,7 +389,7 @@ void loop(){
                 
                
 
-                response_packet(true, [Kp, Ki, Kd, Kz]);
+                //response_packet(true, [Kp, Ki, Kd, Kz]);
                 sendSPIPacket(resp_buff);
                 break;
 
@@ -474,14 +477,14 @@ void loop(){
                 if(spi_recv_buff[4]==1){
                     servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
                 }
-                response_packet(1, [0])
+                response_packet(1, 0);
                 sendSPIPacket(resp_buff);
                 break;
                 
             case CMD_ZERO_ENCODER:
                 LED(GREEN);
                 Enc1.write(0);
-                response_packet(true, [0])
+                response_packet(true, 0);
                 sendSPIPacket(resp_buff);
                 break;
 
@@ -505,7 +508,7 @@ void loop(){
                     servo_2_min_microseconds = servo_min_microseconds;
                     servo_2_max_microseconds = servo_max_microseconds;
                 }
-                response_packet(true, [0])
+                response_packet(true, 0);
                 sendSPIPacket(resp_buff);
                 break;
            
