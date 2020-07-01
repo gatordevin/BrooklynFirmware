@@ -333,17 +333,13 @@ void loop(){
                 break;
                 
             case CMD_GET_CARD_TYPE:
-                // spi_send_buff[1] = 0;
-                // spi_send_buff[2] = 3;
-                // spi_send_buff[3] = 1;
-                // spi_send_buff[4] = 1; //CARD TYPE FOR EMPIRE ID 1
                 data_array[0] = 1; // CARD TYPE FOR EMPIRE ID 1
 
                 response_packet(true, 0, 1);
                 sendSPIPacket(resp_buff);
                 break;
 
-             case CMD_GET_ENCODER:
+            case CMD_GET_ENCODER:
                 LED(GREEN);                
                 encoder_pos = Enc1.read();
                 decTo256(abs(encoder_pos));
