@@ -1,0 +1,6 @@
+{
+    "board": "arduino:avr:leonardo",
+    "programmer": "AVR ISP",
+    "sketch": "TestingSingleByte/TestingSingleByte.ino",
+    "port": "/dev/ttyACM1"
+}

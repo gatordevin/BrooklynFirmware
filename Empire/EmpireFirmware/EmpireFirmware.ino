@@ -278,6 +278,7 @@ void integralZone(double setpoint, double in,  int zone){
 
 
 void loop(){
+    LED(BLUE);
     if(readSPIPacket()){
         spi_send_buff[0] = 255; //Set serial send header
         switch(spi_recv_buff[2]){
@@ -296,7 +297,6 @@ void loop(){
                 sendSPIPacket(spi_recv_buff);
                 break;
              case CMD_GET_ENCODER:
-                
                 LED(GREEN);
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;

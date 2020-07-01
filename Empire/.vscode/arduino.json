@@ -3,5 +3,5 @@
     "board": "arduino:avr:uno",
     "port": "/dev/ttyACM0",
     "output": "./ArduinoOutput",
-    "sketch": "ISPSlaveTest.ino"
+    "sketch": "test/test.ino"
 }

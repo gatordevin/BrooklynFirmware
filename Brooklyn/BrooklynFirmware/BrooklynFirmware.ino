@@ -248,7 +248,7 @@ void LED(uint8_t color){
     }
 }
 
-uint8_t reset_pins[] = {A2, A3, 3, 2, 13, 5, 8, 6};
+uint8_t reset_pins[] = {A2, A3, 2, 3, 13, 5, 8, 6};
 uint8_t ss[] = {A1, A0, 0, 1, 10, 9, 12, 4};
 uint8_t RESET = 0;
 
