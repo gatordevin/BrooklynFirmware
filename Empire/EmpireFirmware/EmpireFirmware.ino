@@ -387,9 +387,6 @@ void loop(){
                 Kz = spi_recv_buff[10];
                 posPID.setGains(Kp,Ki,Kd);
                 
-               
-
-                //response_packet(true, [Kp, Ki, Kd, Kz]);
                 sendSPIPacket(resp_buff);
                 break;
 
@@ -477,7 +474,7 @@ void loop(){
                 if(spi_recv_buff[4]==1){
                     servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
                 }
-                response_packet(1, 0);
+                response_packet(true, 0);
                 sendSPIPacket(resp_buff);
                 break;
                 
