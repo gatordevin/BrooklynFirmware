@@ -4,6 +4,7 @@
 #include <Encoder.h>
 
 
+
 #define RED 1
 #define BLUE 2
 #define GREEN 3
@@ -24,6 +25,7 @@ Servo servo_1;
 Servo servo_2;
 Servo servos[2] = {servo_1,servo_2};
 
+
 int servo_1_min_angle = 0;
 int servo_1_max_angle = 180;
 int servo_1_min_microseconds = 1000;
@@ -36,6 +38,10 @@ int servo_2_max_microseconds = 2000;
 #define outputMin 0
 #define outputMax 255
 
+volatile double newposition = 0;
+volatile double newtime = 0;
+volatile int vel= 0;
+
 double Kp = .08;
 double Ki = 0.00;
 double Kd = 0.00;
@@ -44,12 +50,14 @@ double setpoint = 0;
 double output = 0;
 double speed_output = 0;
 double previous_pos = 0;
-double previous_time = 0;
-double encoder_pos = 0;
+volatile double previous_time = 0;
+volatile double encoder_pos = 0;
 double input = 0;
 int Mspeed = 0;
 int Mdir = 0;
 int Kz = 0;
+int breakOrCoast = 0;
+int motorTpr = 0;
 
 Encoder Enc1(2,3);
 AutoPID posPID(&encoder_pos, &setpoint, &output, -255.0, 255.0, Kp, Ki, Kd);
@@ -62,6 +70,7 @@ AutoPID speedPID(&velocity, &setpoint, &speed_output, -255.0, 255.0, Kp, Ki, Kd)
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
 uint8_t spi_send_buff[20];
+uint8_t resp_buff[20];
 volatile int idx = 0;
 volatile int ridx = 0;
 
@@ -78,6 +87,10 @@ uint8_t checksum2 = 0;
 #define CMD_READ_SPEED 27
 #define CMD_PID_SPEED 28
 #define CMD_PID_CONSTANTS 29
+#define CMD_ZERO_ENCODER 30
+#define CMD_SET_TPR 23
+
+
 
 int data_array[3];
 void decTo256(int n) 
@@ -106,8 +119,9 @@ void Mset(int MotorDirection, int MotorSpeed){
     MotorSpeed = 0;
   }
   if(MotorDirection == 0){
-    analogWrite(5,0);
-    analogWrite(6,0);
+     analogWrite(5,0);
+     analogWrite(6,0);
+   
   }else if(MotorDirection == 1){
     analogWrite(5,MotorSpeed);
     analogWrite(6,0);
@@ -121,9 +135,9 @@ void Mset(int MotorDirection, int MotorSpeed){
 }
 
 double calculateSpeed(){
-  double newposition = Enc1.read();
-  double newtime = millis();
-  double vel = (newposition-previous_pos)/(newtime/previous_time);
+  newposition = Enc1.read();
+  newtime = millis()*0.001;
+  vel = (newposition-previous_pos)/(newtime-previous_time);
   previous_pos = newposition;
   previous_time = newtime;
   return vel;
@@ -241,6 +255,9 @@ void setup(){
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
     pinMode(MISO,OUTPUT);
+
+   
+    previous_time = millis();
     servo_1.attach(servo_1_pin);
     servo_2.attach(servo_2_pin);
     SPCR |= _BV(SPE);
@@ -257,10 +274,17 @@ long convertToPWM(long angle, long minAngle, long maxAngle, long minPWM, long ma
 
 int ToDec(uint8_t lsb, uint8_t msb){
   int bigNumber = lsb + (msb * 255);
- 
+
   return bigNumber;
 }
-int negitive_check(int x){
+int ToDecNeg(int lsb, int msb, int neg){
+  int bigNumber = lsb + (msb * 255);
+  if(neg == 0){
+    bigNumber = bigNumber*-1;
+  }
+  return bigNumber;
+}
+int negative_check(int x){
   if(abs(x) == x){
     return 0;
   }else{
@@ -277,18 +301,35 @@ void integralZone(double setpoint, double in,  int zone){
 }
 
 
+void response_packet(bool success, double data) {
+  if(success) {
+    resp_buff[1] = 1;
+  } else {
+    resp_buff[1] = 0;
+  }
+  resp_buff[2] = 5;
+  decTo256(data);
+  if(abs(data) < 256){
+    data_array[1] = 0; 
+  }
+  for(int i = 0; i < sizeof(data_array)/sizeof(data_array[0]); i++) {
+    resp_buff[i+3] = data_array[i];
+  }
+}
+
 void loop(){
     LED(BLUE);
     if(readSPIPacket()){
         spi_send_buff[0] = 255; //Set serial send header
         switch(spi_recv_buff[2]){
-          case TEST:
-                spi_send_buff[1] = 1;
-                spi_send_buff[2] = 5;
-                spi_send_buff[3] = 0;
-               
+            case TEST:
+                LED(GREEN);
+                
+                
+                
                 sendSPIPacket(spi_recv_buff);
                 break;
+                
             case CMD_GET_CARD_TYPE:
                 spi_send_buff[1] = 0;
                 spi_send_buff[2] = 3;
@@ -296,6 +337,7 @@ void loop(){
                 spi_send_buff[4] = 1; //CARD TYPE FOR EMPIRE ID 1
                 sendSPIPacket(spi_recv_buff);
                 break;
+
              case CMD_GET_ENCODER:
                 LED(GREEN);
                 spi_send_buff[1] = 1;
@@ -309,7 +351,7 @@ void loop(){
                 }
                 spi_send_buff[4] = data_array[0];
                 spi_send_buff[5] = data_array[1];
-                spi_send_buff[6] = negitive_check(encoder_pos);
+                spi_send_buff[6] = negative_check(encoder_pos);
                 sendSPIPacket(spi_send_buff);
                 break;
             case CMD_MOTOR_PWM:
@@ -326,7 +368,7 @@ void loop(){
                 }
                 spi_send_buff[4] = data_array[0];
                 spi_send_buff[5] = data_array[1];
-                spi_send_buff[6] = negitive_check(encoder_pos);
+                spi_send_buff[6] = negative_check(encoder_pos);
                 
                 Mset(spi_recv_buff[4], spi_recv_buff[5]); 
                 
@@ -339,16 +381,16 @@ void loop(){
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
                 spi_send_buff[3] = 7;
-                Kp = (ToDec(spi_recv_buff[4], spi_recv_buff[5]))/(double)1000;
-                Ki = (ToDec(spi_recv_buff[6], spi_recv_buff[7]))/(double)1000;
-                Kd = (ToDec(spi_recv_buff[8], spi_recv_buff[9]))/(double)1000;
+                Kp = (ToDec(spi_recv_buff[4], spi_recv_buff[5]))/(double)10000;
+                Ki = (ToDec(spi_recv_buff[6], spi_recv_buff[7]))/(double)10000;
+                Kd = (ToDec(spi_recv_buff[8], spi_recv_buff[9]))/(double)10000;
                 Kz = spi_recv_buff[10];
                 posPID.setGains(Kp,Ki,Kd);
                 
                
 
-
-                sendSPIPacket(spi_recv_buff);
+                //response_packet(true, [Kp, Ki, Kd, Kz]);
+                sendSPIPacket(resp_buff);
                 break;
 
             case CMD_PID_SETPOINT:
@@ -358,12 +400,13 @@ void loop(){
                 spi_send_buff[3] = 3;
 
                 encoder_pos = Enc1.read();
-                setpoint = ToDec(spi_recv_buff[4], spi_recv_buff[5]);
-                integralZone(setpoint,encoder_pos, Kz);
+                setpoint = ToDecNeg(spi_recv_buff[4], spi_recv_buff[5], spi_recv_buff[6]);
+                setpoint = setpoint * (motorTpr / 360);
+                integralZone(setpoint, encoder_pos, Kz);
                 posPID.run();
                 if(abs(output) != output){
-                  output = output*-1;
-                  Mset(1,output);
+                  int temp = output*-1;
+                  Mset(1,temp);
                 }else{
                   Mset(2,output);
                 }
@@ -374,7 +417,7 @@ void loop(){
                 //spi_send_buff[4] = output;
                 spi_send_buff[4] = data_array[0];
                 spi_send_buff[5] = data_array[1];
-                spi_send_buff[6] = negitive_check(encoder_pos);
+                spi_send_buff[6] = negative_check(encoder_pos);
                 
                 sendSPIPacket(spi_send_buff);
                 break;
@@ -384,12 +427,18 @@ void loop(){
                 LED(GREEN);
                 spi_send_buff[1] = 1;
                 spi_send_buff[2] = 5;
-                spi_send_buff[3] = 2;
+                spi_send_buff[3] = 3;
                 
                 velocity = calculateSpeed();
                 
-                spi_send_buff[4] = abs(velocity);
-                spi_send_buff[5] = negitive_check(velocity);
+                decTo256(abs(velocity));
+                if(abs(velocity) < 256){
+                  data_array[1] = 0; 
+                }
+                //spi_send_buff[4] = output;
+                spi_send_buff[4] = data_array[0];
+                spi_send_buff[5] = data_array[1];
+                spi_send_buff[6] = negative_check(velocity);
                 
                 sendSPIPacket(spi_send_buff);
                 break;
@@ -413,7 +462,7 @@ void loop(){
                 }
                 
                 spi_send_buff[4] = abs(velocity);
-                spi_send_buff[5] = negitive_check(velocity);
+                spi_send_buff[5] = negative_check(velocity);
                 
                 
                 sendSPIPacket(spi_send_buff);
@@ -428,8 +477,18 @@ void loop(){
                 if(spi_recv_buff[4]==1){
                     servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
                 }
-                sendSPIPacket(spi_recv_buff);
+                response_packet(1, 0);
+                sendSPIPacket(resp_buff);
                 break;
+                
+            case CMD_ZERO_ENCODER:
+                LED(GREEN);
+                Enc1.write(0);
+                response_packet(true, 0);
+                sendSPIPacket(resp_buff);
+                break;
+
+            
 
             case CMD_SET_SERVO_RANGE:
                 int servo_min_angle = ToDec(spi_recv_buff[5], spi_recv_buff[6]);
@@ -449,10 +508,22 @@ void loop(){
                     servo_2_min_microseconds = servo_min_microseconds;
                     servo_2_max_microseconds = servo_max_microseconds;
                 }
-                sendSPIPacket(spi_recv_buff);
+                response_packet(true, 0);
+                sendSPIPacket(resp_buff);
                 break;
+           
+             
+            case CMD_SET_TPR:
+              motorTpr = ToDec(spi_recv_buff[3], spi_recv_buff[4]);
+              if(motorTpr){
+                sendSPIPacket(spi_recv_buff);
+              }else{
+                sendSPIPacket(spi_recv_buff);
+              }
+              break;
             
             default:
+                LED(BLUE);
                 break;
         }
     }else{

@@ -1,7 +1,0 @@
-{
-    "programmer": "AVR ISP",
-    "board": "arduino:avr:leonardo",
-    "port": "/dev/ttyACM1",
-    "sketch": "flash.ino",
-    "output": "./ArduinoOutput"
-}
