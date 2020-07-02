@@ -253,12 +253,14 @@ uint8_t ss[] = {A1, A0, 0, 1, 10, 9, 12, 4};
 uint8_t RESET = 0;
 
 uint8_t ser_recv_buff[20];
-uint8_t ser_send_buff[20];
+uint8_t ser_send_buff[100];
 uint8_t spi_recv_buff[20];
 uint8_t spi_send_buff[20];
+uint8_t packet_buff[100];
 
 uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
+uint8_t current_data_packet_pos = 0;
 
 void setup() {
   SERIAL.begin(1000000);
@@ -347,8 +349,8 @@ bool readSerialPacket(){
     while(ser_recv_buff[0] != 255){
         ser_recv_buff[0] = readByte(); //header 255
         if(ser_recv_buff[0]==170){
-          return false;
-        }
+        return false;
+      }
     }
     ser_recv_buff[1] = readByte(); //controller ID
     ser_recv_buff[2] = readByte(); //controller command
@@ -356,8 +358,10 @@ bool readSerialPacket(){
     for(int i=0;i<ser_recv_buff[3];i++){
         ser_recv_buff[i+4] = readByte(); //data bytes
     }
-    ser_recv_buff[ser_recv_buff[3]+4] = readByte(); //checksum 1
-    ser_recv_buff[ser_recv_buff[3]+5] = readByte(); //checksum 2
+    ser_recv_buff[ser_recv_buff[3]+4] = readByte(); //Packet ID
+    ser_recv_buff[ser_recv_buff[3]+5] = readByte(); //Packet ID
+    ser_recv_buff[ser_recv_buff[3]+6] = readByte(); //checksum 1
+    ser_recv_buff[ser_recv_buff[3]+7] = readByte(); //checksum 2
     
     return(verifyChecksum(ser_recv_buff)); //return whether data was received succesfully
 }
@@ -370,9 +374,12 @@ void sendSerialPacket(uint8_t send_buff[]){
     for(int i=0;i<send_buff[3];i++){
         Serial.write(send_buff[i+4]); //send data bytes
     }
+    Serial.write(send_buff[send_buff[3]+4]);
+    Serial.write(send_buff[send_buff[3]+5]);
     calculateChecksum(send_buff);
     Serial.write(checksum1); //send checksum 1
     Serial.write(checksum2); //send checksum 2
+    clear_packet();
 }
 
 uint8_t readByte(){
@@ -382,13 +389,13 @@ uint8_t readByte(){
 }
 
 void CopySerToSPI(){
-    for(int i=0;i<20;i++){
+    for(int i=0;i<100;i++){
         spi_send_buff[i] = ser_recv_buff[i]; //copy data
     }
 }
 
 void CopySPIToSer(){
-    for(int i=0;i<20;i++){
+    for(int i=0;i<100;i++){
         ser_send_buff[i] = spi_recv_buff[i]; //copy data
     }
 }
@@ -409,6 +416,8 @@ bool SPISendPacket(uint8_t SSpin){
     for(int i=0;i<spi_send_buff[3];i++){
         SPISend(SSpin,spi_send_buff[4+i]);
     }
+    SPISend(SSpin, spi_send_buff[spi_send_buff[3]+4]);
+    SPISend(SSpin, spi_send_buff[spi_send_buff[3]+5]);
     calculateChecksum(spi_send_buff);
     SPISend(SSpin, checksum1);
     SPISend(SSpin, checksum2);
@@ -427,6 +436,8 @@ bool SPIRecvPacket(uint8_t SSpin){
     }
     spi_recv_buff[spi_recv_buff[3]+4] = SPISend(SSpin,0);
     spi_recv_buff[spi_recv_buff[3]+5] = SPISend(SSpin,0);
+    spi_recv_buff[spi_recv_buff[3]+6] = SPISend(SSpin,0);
+    spi_recv_buff[spi_recv_buff[3]+7] = SPISend(SSpin,0);
 
     if(verifyChecksum(spi_recv_buff)==true){
         return true;
@@ -436,8 +447,8 @@ bool SPIRecvPacket(uint8_t SSpin){
 
 bool verifyChecksum(uint8_t recv_buff[]){
     calculateChecksum(recv_buff);
-    if(checksum1 == recv_buff[recv_buff[3]+4]){ //compare with checksum one
-        if(checksum2 == recv_buff[recv_buff[3]+5]){ //compare with checksum two
+    if(checksum1 == recv_buff[recv_buff[3]+6]){ //compare with checksum one
+        if(checksum2 == recv_buff[recv_buff[3]+7]){ //compare with checksum two
             return true; //return true if checksums validate
         }
     }
@@ -453,6 +464,8 @@ void calculateChecksum(uint8_t data_buff[]){
     for(int i=0;i<data_buff[3];i++){
         packetSum += data_buff[i+4]; //add data bytes to checksum
     }
+    packetSum += data_buff[data_buff[3]+4];
+    packetSum += data_buff[data_buff[3]+5];
     checksum1 = floor(packetSum / 256);
     checksum2 = packetSum % 256;
 }
@@ -788,7 +801,58 @@ void read_signature() {
 //////////////////////////////////////////
 //////////////////////////////////////////
 
+void create_id(int num){
+  spi_send_buff[spi_send_buff[3]+4] = num%255;
+  spi_send_buff[spi_send_buff[3]+5] = (int) floor(num/255);
+}
 
+
+void add_data_packet(){
+  if(current_data_packet_pos == 8){
+    LED(BLUE);
+  }
+  for(int i=0;i<spi_recv_buff[3];i++){
+    packet_buff[current_data_packet_pos] = spi_recv_buff[4+i]; //read data
+    current_data_packet_pos += 1;
+    
+  }
+  
+}
+
+void clear_packet(){
+  for(int i=0;i<100;i++){
+    ser_send_buff[i] = 0;
+  }
+}
+
+void create_data_packet(){
+  if(packet_buff[0] == 255){
+    ser_send_buff[4] = packet_buff[0];
+    ser_send_buff[5] = packet_buff[1];
+    ser_send_buff[6] = packet_buff[2];
+    ser_send_buff[7] = packet_buff[3];
+    for(int i=0;i<packet_buff[3];i++){
+      ser_send_buff[8+i] = packet_buff[4+i];
+    }
+    ser_send_buff[packet_buff[3]+8] = packet_buff[packet_buff[3]+4];
+    ser_send_buff[packet_buff[3]+9] = packet_buff[packet_buff[3]+5];
+    ser_send_buff[packet_buff[3]+10] = packet_buff[packet_buff[3]+6];
+    ser_send_buff[packet_buff[3]+11] = packet_buff[packet_buff[3]+7];
+
+    ser_send_buff[3] = 8+packet_buff[3];
+    for(int i=0;i<100-ser_send_buff[3];i+=1)
+    {
+        packet_buff[i]=packet_buff[i+ser_send_buff[3]];
+    }
+    current_data_packet_pos = 0;
+  }
+  
+  
+  // for(int i=99;i>99-spi_send_buff[3];i-=1)
+  // {
+  //     packet_buff[i]=0;
+  // }
+}
 ////////////////////////////////////
 ////////////////////////////////////
 void avrisp() {
@@ -888,18 +952,37 @@ void avrisp() {
 #define CMD_GET_ENCODER 24
 #define CMD_SET_PWM 9
 #define CMD_SET_SERVO_RANGE 11
+#define CMD_CARD_HB 4
 #define CMD_GET_CARD_TYPE 3
 #define CMD_GET_BOARD_NAME 2
 #define CMD_SET_BOARD_NAME 1
 String board_name;
+uint8_t currrent_ss = 0;
 void controller_switch(){
+  while(!Serial.available()){
+    spi_send_buff[0] = 255;
+    spi_send_buff[1] = currrent_ss+2;
+    spi_send_buff[2] = 72;
+    spi_send_buff[3] = 0;
+    create_id(60001);
+    LED(RED);
+    if(SPISendPacket(ss[currrent_ss])){
+      add_data_packet();
+    }else{
+      LED(RED);
+    }
+  }
+  
   if(readSerialPacket()){
         ser_send_buff[0] = 255; //Set serial send header
         switch(ser_recv_buff[2]){
+            LED(GREEN);
             case CMD_HB:
                 ser_send_buff[1] = 0;
                 ser_send_buff[2] = 72;
-                ser_send_buff[3] = 0; 
+                create_data_packet();
+                ser_send_buff[ser_send_buff[3]+4] = ser_recv_buff[ser_recv_buff[3]+4];
+                ser_send_buff[ser_send_buff[3]+5] = ser_recv_buff[ser_recv_buff[3]+5];
                 sendSerialPacket(ser_send_buff);
                 break;
             

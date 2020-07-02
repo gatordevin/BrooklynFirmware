@@ -69,15 +69,17 @@ AutoPID speedPID(&velocity, &setpoint, &speed_output, -255.0, 255.0, Kp, Ki, Kd)
 
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
-uint8_t spi_send_buff[20];
+uint8_t spi_send_buff[100];
 uint8_t resp_buff[20];
+uint8_t packet_buff[100];
+
 volatile int idx = 0;
 volatile int ridx = 0;
 
 uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
 
-#define TEST 4
+#define CMD_CARD_HB 72
 #define CMD_GET_CARD_TYPE 3
 #define CMD_SET_PWM 9
 #define CMD_SET_SERVO_RANGE 11
@@ -200,8 +202,8 @@ void SPISend(uint8_t data){
 
 bool verifyChecksum(uint8_t recv_buff[]){
     calculateChecksum(recv_buff);
-    if(checksum1 == recv_buff[recv_buff[3]+4]){ //compare with checksum one
-        if(checksum2 == recv_buff[recv_buff[3]+5]){ //compare with checksum two
+    if(checksum1 == recv_buff[recv_buff[3]+6]){ //compare with checksum one
+        if(checksum2 == recv_buff[recv_buff[3]+7]){ //compare with checksum two
             return true; //return true if checksums validate
         }
     }
@@ -217,6 +219,8 @@ void calculateChecksum(uint8_t data_buff[]){
     for(int i=0;i<data_buff[3];i++){
         packetSum += data_buff[i+4]; //add data bytes to checksum
     }
+    packetSum += data_buff[data_buff[3]+4];
+    packetSum += data_buff[data_buff[3]+5];
     checksum1 = floor(packetSum / 256);
     checksum2 = packetSum % 256;
 }
@@ -232,8 +236,10 @@ bool readSPIPacket(){
     for(int i=0;i<spi_recv_buff[3];i++){
         spi_recv_buff[4+i] = readByte();
     }
-    spi_recv_buff[spi_recv_buff[3]+4] = readByte(); //checksum 1
-    spi_recv_buff[spi_recv_buff[3]+5] = readByte(); //checksum 2
+    spi_recv_buff[spi_recv_buff[3]+4] = readByte();
+    spi_recv_buff[spi_recv_buff[3]+5] = readByte();
+    spi_recv_buff[spi_recv_buff[3]+6] = readByte(); //checksum 1
+    spi_recv_buff[spi_recv_buff[3]+7] = readByte(); //checksum 2
     return(verifyChecksum(spi_recv_buff)); //return whether data was received succesfully
 }
 
@@ -245,9 +251,12 @@ void sendSPIPacket(uint8_t send_buff[]){
     for(int i=0;i<send_buff[3];i++){
         SPISend(send_buff[4+i]); //Send packet data
     }
+    SPISend(send_buff[send_buff[3]+4]);
+    SPISend(send_buff[send_buff[3]+5]);
     calculateChecksum(send_buff);
     SPISend(checksum1); //Send Checksum one
     SPISend(checksum2); //Send Checksum two
+    clear_packet();
 }
 
 void setup(){
@@ -265,6 +274,14 @@ void setup(){
     SPCR |= _BV(SPIE);      //we not using SPI.attachInterrupt() why?
     LED(BLUE);
     sei();
+    // packet_buff[0] = 255;
+    // packet_buff[1] = 0;
+    // packet_buff[2] = 4;
+    // packet_buff[3] = 0;
+    // packet_buff[4] = 0;
+    // packet_buff[5] = 0;
+    // packet_buff[6] = 1;
+    // packet_buff[7] = 3;
 }
 
 long convertToPWM(long angle, long minAngle, long maxAngle, long minPWM, long maxPWM){
@@ -317,17 +334,62 @@ void response_packet(bool success, double data) {
   }
 }
 
+void create_id(int num){
+  spi_send_buff[spi_send_buff[3]+4] = num%255;
+  spi_send_buff[spi_send_buff[3]+5] = (int) floor(num/255);
+}
+
+void clear_packet(){
+  for(int i=0;i<100;i++){
+    spi_send_buff[i] = 0;
+  }
+}
+
+void create_data_packet(){
+  uint8_t start_index = 0;
+  if(packet_buff[0] == 255){
+    spi_send_buff[4] = packet_buff[0];
+    spi_send_buff[5] = packet_buff[1];
+    spi_send_buff[6] = packet_buff[2];
+    spi_send_buff[7] = packet_buff[3];
+    for(int i=0;i<packet_buff[3];i++){
+      spi_send_buff[8+i] = packet_buff[4+i];
+    }
+    spi_send_buff[packet_buff[3]+8] = packet_buff[packet_buff[3]+4];
+    spi_send_buff[packet_buff[3]+9] = packet_buff[packet_buff[3]+5];
+    spi_send_buff[packet_buff[3]+10] = packet_buff[packet_buff[3]+6];
+    spi_send_buff[packet_buff[3]+11] = packet_buff[packet_buff[3]+7];
+
+    spi_send_buff[3] = 8+packet_buff[3];
+    for(int i=0;i<100-spi_send_buff[3];i+=1)
+    {
+        packet_buff[i]=packet_buff[i+spi_send_buff[3]];
+    }
+  }else{
+    spi_send_buff[3] = 0;
+  }
+  
+  
+  // for(int i=99;i>99-spi_send_buff[3];i-=1)
+  // {
+  //     packet_buff[i]=0;
+  // }
+}
+
 void loop(){
-    LED(BLUE);
+    while(idx==ridx){
+      
+    }
     if(readSPIPacket()){
         spi_send_buff[0] = 255; //Set serial send header
         switch(spi_recv_buff[2]){
-            case TEST:
+            case CMD_CARD_HB:
                 LED(GREEN);
-                
-                
-                
-                sendSPIPacket(spi_recv_buff);
+                spi_send_buff[1] = 0;
+                spi_send_buff[2] = CMD_CARD_HB;
+                create_data_packet();
+                create_id(60001);
+                sendSPIPacket(spi_send_buff);
                 break;
                 
             case CMD_GET_CARD_TYPE:
