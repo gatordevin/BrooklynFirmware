@@ -1,5 +1,5 @@
-/home/techgarage/BrooklynFirmware/Empire/ArduinoOutput/sketch/ISPSlaveTest.ino.cpp.o: \
- /home/techgarage/BrooklynFirmware/Empire/ArduinoOutput/sketch/ISPSlaveTest.ino.cpp \
+/home/techgarage/BrooklynFirmware/Empire/ArduinoOutput/sketch/test.ino.cpp.o: \
+ /home/techgarage/BrooklynFirmware/Empire/ArduinoOutput/sketch/test.ino.cpp \
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/cores/arduino/Arduino.h \
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/cores/arduino/binary.h \
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/cores/arduino/WCharacter.h \

@@ -1,22 +1,60 @@
-#include <Servo.h>
+#include <SPI.h>
 
-#define servo_pin A5
+#define RED 1
+#define BLUE 2
+#define GREEN 3
+#define OFF 4
 
-Servo servo;
+#define red_pin 0
+#define blue_pin A2
+#define green_pin A3
 
-void setup(){
-    servo.attach(servo_pin);
+uint8_t resp;
+
+void LED(uint8_t color){
+    switch (color){
+        case RED:
+            digitalWrite(red_pin, LOW);
+            digitalWrite(blue_pin, HIGH);
+            digitalWrite(green_pin, HIGH);
+            break;
+        case BLUE:
+            digitalWrite(red_pin, HIGH);
+            digitalWrite(blue_pin, LOW);
+            digitalWrite(green_pin, HIGH);
+            break;
+        case GREEN:
+            digitalWrite(red_pin, HIGH);
+            digitalWrite(blue_pin, HIGH);
+            digitalWrite(green_pin, LOW);
+            break;
+        case OFF:
+            digitalWrite(red_pin, HIGH);
+            digitalWrite(blue_pin, HIGH);
+            digitalWrite(green_pin, HIGH);
+            break;
+    }
 }
 
-void loop(){
-    //500 - 2400
-    servo.writeMicroseconds(2500);
-    // for(int i = 0; i<=3000;  i+=100){
-    //     servo.writeMicroseconds(i);
-    //     delay(4000);
-    // }
-    // for(int i = 3000; i>=0;  i-=100){
-    //     servo.writeMicroseconds(i);
-    //     delay(4000);
-    // }
+ISR (SPI_STC_vect)
+{
+    resp = SPDR;
+    LED(BLUE);
+}
+
+void setup(){
+    pinMode(red_pin, OUTPUT);
+    pinMode(blue_pin, OUTPUT);
+    pinMode(green_pin, OUTPUT);
+    pinMode(MISO,OUTPUT);
+    SPCR |= _BV(SPE);
+    SPCR &= ~(_BV(MSTR)); //Arduino is Slave
+    SPDR = 0x67;  //test value
+    SPCR |= _BV(SPIE);      //we not using SPI.attachInterrupt() why?
+    sei();
+    LED(RED);
+}
+
+void loop(void){
+    
 }

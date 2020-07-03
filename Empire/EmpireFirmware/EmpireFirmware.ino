@@ -69,15 +69,17 @@ AutoPID speedPID(&velocity, &setpoint, &speed_output, -255.0, 255.0, Kp, Ki, Kd)
 
 volatile uint8_t interrupt_buff[100];
 uint8_t spi_recv_buff[20];
-uint8_t spi_send_buff[20];
+uint8_t spi_send_buff[100];
 uint8_t resp_buff[20];
+uint8_t packet_buff[100];
+
 volatile int idx = 0;
 volatile int ridx = 0;
 
 uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
 
-#define TEST 4
+#define CMD_CARD_HB 72
 #define CMD_GET_CARD_TYPE 3
 #define CMD_SET_PWM 9
 #define CMD_SET_SERVO_RANGE 11
@@ -202,8 +204,8 @@ void SPISend(uint8_t data){
 
 bool verifyChecksum(uint8_t recv_buff[]){
     calculateChecksum(recv_buff);
-    if(checksum1 == recv_buff[recv_buff[3]+4]){ //compare with checksum one
-        if(checksum2 == recv_buff[recv_buff[3]+5]){ //compare with checksum two
+    if(checksum1 == recv_buff[recv_buff[4]+7]){ //compare with checksum one
+        if(checksum2 == recv_buff[recv_buff[4]+8]){ //compare with checksum two
             return true; //return true if checksums validate
         }
     }
@@ -214,11 +216,14 @@ void calculateChecksum(uint8_t data_buff[]){
     int packetSum = 0;
     packetSum += data_buff[0]; //add header to checksum
     packetSum += data_buff[1]; //add controller id to checksum
-    packetSum += data_buff[2]; //add controller command to checksum
-    packetSum += data_buff[3]; //add data length to checksum
-    for(int i=0;i<data_buff[3];i++){
-        packetSum += data_buff[i+4]; //add data bytes to checksum
+    packetSum += data_buff[2]; //From ID
+    packetSum += data_buff[3]; //add controller command to checksum
+    packetSum += data_buff[4]; //add data length to checksum
+    for(int i=0;i<data_buff[4];i++){
+        packetSum += data_buff[i+5]; //add data bytes to checksum
     }
+    packetSum += data_buff[data_buff[4]+5];
+    packetSum += data_buff[data_buff[4]+6];
     checksum1 = floor(packetSum / 256);
     checksum2 = packetSum % 256;
 }
@@ -229,27 +234,85 @@ bool readSPIPacket(){
         spi_recv_buff[0] = readByte(); //header 255
     }
     spi_recv_buff[1] = readByte(); //ID
-    spi_recv_buff[2] = readByte(); //Command
-    spi_recv_buff[3] = readByte(); //Data length
-    for(int i=0;i<spi_recv_buff[3];i++){
-        spi_recv_buff[4+i] = readByte();
+    spi_recv_buff[2] = readByte(); //FROM ID
+    spi_recv_buff[3] = readByte(); //Command
+    spi_recv_buff[4] = readByte(); //Data length
+    for(int i=0;i<spi_recv_buff[4];i++){
+        spi_recv_buff[5+i] = readByte();
     }
-    spi_recv_buff[spi_recv_buff[3]+4] = readByte(); //checksum 1
-    spi_recv_buff[spi_recv_buff[3]+5] = readByte(); //checksum 2
+    spi_recv_buff[spi_recv_buff[4]+5] = readByte();
+    spi_recv_buff[spi_recv_buff[4]+6] = readByte();
+    spi_recv_buff[spi_recv_buff[4]+7] = readByte(); //checksum 1
+    spi_recv_buff[spi_recv_buff[4]+8] = readByte(); //checksum 2
     return(verifyChecksum(spi_recv_buff)); //return whether data was received succesfully
 }
 
 void sendSPIPacket(uint8_t send_buff[]){
     SPISend(send_buff[0]); //Send Header
     SPISend(send_buff[1]); //Send ID
-    SPISend(send_buff[2]); //Send Command
-    SPISend(send_buff[3]); //Send Data length
-    for(int i=0;i<send_buff[3];i++){
-        SPISend(send_buff[4+i]); //Send packet data
+    SPISend(send_buff[2]); //From ID
+    SPISend(send_buff[3]); //Send Command
+    SPISend(send_buff[4]); //Send Data length
+    for(int i=0;i<send_buff[4];i++){
+        SPISend(send_buff[5+i]); //Send packet data
     }
+    if(send_buff[9]==0){
+    if(send_buff[10]==0){
+      if(send_buff[11]==0){
+      if(send_buff[12]==1){
+      if(send_buff[13]==3){
+      LED(RED);
+    }
+    }
+    }
+    }
+    }
+    SPISend(send_buff[send_buff[4]+5]);
+    SPISend(send_buff[send_buff[4]+6]);
     calculateChecksum(send_buff);
     SPISend(checksum1); //Send Checksum one
     SPISend(checksum2); //Send Checksum two
+    clear_packet();
+}
+
+uint8_t current_data_packet_pos = 0;
+void create_data_packet(){
+  uint8_t start_index = 0;
+  if(packet_buff[0] == 255){
+    spi_send_buff[5] = packet_buff[0];
+    spi_send_buff[6] = packet_buff[1];
+    spi_send_buff[7] = packet_buff[2]; //From ID
+    spi_send_buff[8] = packet_buff[3];
+    spi_send_buff[9] = packet_buff[4];
+    for(int i=0;i<packet_buff[4];i++){
+      spi_send_buff[10+i] = packet_buff[5+i];
+    }
+    spi_send_buff[packet_buff[4]+10] = packet_buff[packet_buff[4]+5];
+    spi_send_buff[packet_buff[4]+11] = packet_buff[packet_buff[4]+6];
+    spi_send_buff[packet_buff[4]+12] = packet_buff[packet_buff[4]+7];
+    spi_send_buff[packet_buff[4]+13] = packet_buff[packet_buff[4]+8];
+    spi_send_buff[4] = 9+packet_buff[4];
+    for(int i=0;i<100-spi_send_buff[4];i+=1)
+    {
+        packet_buff[i]=packet_buff[i+spi_send_buff[4]];
+    }
+    current_data_packet_pos -= spi_send_buff[4];
+  }else{
+    spi_send_buff[4] = 0;
+  }
+  
+  
+  // for(int i=99;i>99-spi_send_buff[3];i-=1)
+  // {
+  //     packet_buff[i]=0;
+  // }
+}
+void add_data_hb_buffer(uint8_t byte){
+  packet_buff[current_data_packet_pos] = byte;
+  current_data_packet_pos += 1;
+  if(current_data_packet_pos==100){
+    current_data_packet_pos = 0;
+  }
 }
 
 void setup(){
@@ -267,6 +330,33 @@ void setup(){
     SPCR |= _BV(SPIE);      //we not using SPI.attachInterrupt() why?
     LED(BLUE);
     sei();
+    add_data_hb_buffer(255);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(2);
+    add_data_hb_buffer(4);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(1);
+    add_data_hb_buffer(3);
+    add_data_hb_buffer(255);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(2);
+    add_data_hb_buffer(4);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(1);
+    add_data_hb_buffer(3);
+    add_data_hb_buffer(255);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(2);
+    add_data_hb_buffer(4);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(0);
+    add_data_hb_buffer(1);
+    add_data_hb_buffer(3);
 }
 
 long convertToPWM(long angle, long minAngle, long maxAngle, long minPWM, long maxPWM){
@@ -324,9 +414,23 @@ void response_packet(bool success, int controller_id, int data_len = 0) {
   }
 }
 
+void create_id(int num){
+  spi_send_buff[spi_send_buff[4]+5] = num%255;
+  spi_send_buff[spi_send_buff[4]+6] = (int) floor(num/255);
+}
+
+void clear_packet(){
+  for(int i=0;i<100;i++){
+    spi_send_buff[i] = 0;
+  }
+}
+
 void loop(){
+    while(idx==ridx){
+      
+    }
     if(readSPIPacket()){
-        switch(spi_recv_buff[2]){
+        switch(spi_recv_buff[3]){
             case TEST:
                 LED(GREEN);
 
@@ -340,9 +444,20 @@ void loop(){
                 response_packet(true, 0, 1);
                 sendSPIPacket(resp_buff);
                 break;
-
+              
+            case CMD_CARD_HB:
+                spi_send_buff[1] = 0;
+                spi_send_buff[2] = 2;
+                spi_send_buff[3] = CMD_CARD_HB;
+                create_data_packet();
+                spi_send_buff[spi_send_buff[4]+5] = spi_recv_buff[spi_recv_buff[4]+5];
+                spi_send_buff[spi_send_buff[4]+6] = spi_recv_buff[spi_recv_buff[4]+6];
+                
+                sendSPIPacket(spi_send_buff);
+                break;               
+  
             case CMD_GET_ENCODER:
-                LED(GREEN);                
+                LED(GREEN);  
                 encoder_pos = Enc1.read();
                 decTo256(abs(encoder_pos));
                 if(abs(encoder_pos) < 256){
@@ -356,8 +471,8 @@ void loop(){
 
             case CMD_MOTOR_PWM:
                 LED(GREEN);
-                Mset(spi_recv_buff[4], spi_recv_buff[5]); 
 
+                Mset(spi_recv_buff[5], spi_recv_buff[6]); 
                 encoder_pos = Enc1.read();
                 decTo256(abs(encoder_pos));
                 if(abs(encoder_pos) < 256){
@@ -371,10 +486,14 @@ void loop(){
 
             case CMD_PID_CONSTANTS:
                 LED(GREEN);
-                Kp = (ToDec(spi_recv_buff[4], spi_recv_buff[5]))/(double)10000;
-                Ki = (ToDec(spi_recv_buff[6], spi_recv_buff[7]))/(double)10000;
-                Kd = (ToDec(spi_recv_buff[8], spi_recv_buff[9]))/(double)10000;
-                Kz = spi_recv_buff[10];
+                Kp = (ToDec(spi_recv_buff[5], spi_recv_buff[6]))/(double)10000;
+                Ki = (ToDec(spi_recv_buff[7], spi_recv_buff[8]))/(double)10000;
+                Kd = (ToDec(spi_recv_buff[9], spi_recv_buff[10]))/(double)10000;
+                Kz = spi_recv_buff[11];
+                //spi_send_buff[1] = 0;
+                //spi_send_buff[2] = 2;
+                //spi_send_buff[3] = 5;
+                //spi_send_buff[4] = 7;
                 posPID.setGains(Kp,Ki,Kd);
                 
                 response_packet(true, 1);
@@ -383,8 +502,12 @@ void loop(){
 
             case CMD_PID_SETPOINT:
                 LED(GREEN);
+//                 spi_send_buff[1] = 0;
+//                 spi_send_buff[2] = 2;
+//                 spi_send_buff[3] = 5;
+//                 spi_send_buff[4] = 3;
                 encoder_pos = Enc1.read();
-                setpoint = ToDecNeg(spi_recv_buff[4], spi_recv_buff[5], spi_recv_buff[6]);
+                setpoint = ToDecNeg(spi_recv_buff[5], spi_recv_buff[6], spi_recv_buff[7]);
                 setpoint = setpoint * (motorTpr / 360);
                 integralZone(setpoint, encoder_pos, Kz);
                 posPID.run();
@@ -403,8 +526,7 @@ void loop(){
                 response_packet(true, 1, 3);
                 sendSPIPacket(resp_buff);
                 break;
-            
-                
+                           
             case CMD_READ_SPEED:
                 LED(GREEN);
                 velocity = calculateSpeed();
@@ -423,7 +545,7 @@ void loop(){
                 LED(GREEN);                
                 velocity = calculateSpeed();
             
-                setpoint = spi_recv_buff[4];
+                setpoint = spi_recv_buff[5];
                 speedPID.run();
                 if(abs(speed_output) != speed_output){
                   speed_output = speed_output*-1;
@@ -434,17 +556,17 @@ void loop(){
                 
                 data_array[0] = abs(velocity);
                 data_array[1] = negative_check(velocity);
-                
+            
                 response_packet(true, 1, 2);
                 sendSPIPacket(spi_send_buff);
                 break;
                 
             case CMD_SET_PWM:
-                if(spi_recv_buff[4]==0){
-                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_1_min_angle,servo_1_max_angle,servo_1_min_microseconds,servo_1_max_microseconds));
+                if(spi_recv_buff[5]==0){
+                    servos[spi_recv_buff[5]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[6], spi_recv_buff[7]),servo_1_min_angle,servo_1_max_angle,servo_1_min_microseconds,servo_1_max_microseconds));
                 }
-                if(spi_recv_buff[4]==1){
-                    servos[spi_recv_buff[4]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[5], spi_recv_buff[6]),servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
+                if(spi_recv_buff[5]==1){
+                    servos[spi_recv_buff[5]].writeMicroseconds(convertToPWM(ToDec(spi_recv_buff[6], spi_recv_buff[7]),servo_2_min_angle,servo_2_max_angle,servo_2_min_microseconds,servo_2_max_microseconds));
                 }
                 response_packet(true, 1);
                 sendSPIPacket(resp_buff);
@@ -460,18 +582,18 @@ void loop(){
             
 
             case CMD_SET_SERVO_RANGE:
-                int servo_min_angle = ToDec(spi_recv_buff[5], spi_recv_buff[6]);
-                int servo_max_angle = ToDec(spi_recv_buff[7], spi_recv_buff[8]);
-                int servo_min_microseconds = ToDec(spi_recv_buff[9], spi_recv_buff[10]);
-                int servo_max_microseconds = ToDec(spi_recv_buff[11], spi_recv_buff[12]);
-                if(spi_recv_buff[4]==0){
+                int servo_min_angle = ToDec(spi_recv_buff[6], spi_recv_buff[7]);
+                int servo_max_angle = ToDec(spi_recv_buff[8], spi_recv_buff[9]);
+                int servo_min_microseconds = ToDec(spi_recv_buff[10], spi_recv_buff[11]);
+                int servo_max_microseconds = ToDec(spi_recv_buff[12], spi_recv_buff[13]);
+                if(spi_recv_buff[5]==0){
                     servo_1_min_angle = servo_min_angle;
                     servo_1_max_angle = servo_max_angle;
                     servo_1_min_microseconds = servo_min_microseconds;
                     servo_1_max_microseconds = servo_max_microseconds;
                    
                 }
-                if(spi_recv_buff[4]==1){
+                if(spi_recv_buff[5]==1){
                     servo_2_min_angle = servo_min_angle;
                     servo_2_max_angle = servo_max_angle;
                     servo_2_min_microseconds = servo_min_microseconds;

@@ -21,6 +21,16 @@
   },
   {
     "Sourcefile": "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/ArduinoOutput/sketch/EmpireFirmware.ino.cpp",
+    "Include": "AutoPID.h",
+    "Includepath": "/home/techgarage/Arduino/libraries/AutoPID"
+  },
+  {
+    "Sourcefile": "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/ArduinoOutput/sketch/EmpireFirmware.ino.cpp",
+    "Include": "Encoder.h",
+    "Includepath": "/home/techgarage/Arduino/libraries/Encoder"
+  },
+  {
+    "Sourcefile": "/home/techgarage/BrooklynFirmware/Empire/EmpireFirmware/ArduinoOutput/sketch/EmpireFirmware.ino.cpp",
     "Include": "",
     "Includepath": null
   },
@@ -61,6 +71,16 @@
   },
   {
     "Sourcefile": "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/libraries/Servo/src/stm32f4/Servo.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/techgarage/Arduino/libraries/AutoPID/AutoPID.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/techgarage/Arduino/libraries/Encoder/Encoder.cpp",
     "Include": "",
     "Includepath": null
   }

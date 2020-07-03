@@ -13,4 +13,8 @@
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/variants/standard/pins_arduino.h \
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/libraries/SPI/src/SPI.h \
  /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/libraries/Servo/src/Servo.h \
- /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/libraries/Servo/src/avr/ServoTimers.h
+ /home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/libraries/Servo/src/avr/ServoTimers.h \
+ /home/techgarage/Arduino/libraries/AutoPID/AutoPID.h \
+ /home/techgarage/Arduino/libraries/Encoder/Encoder.h \
+ /home/techgarage/Arduino/libraries/Encoder/utility/direct_pin_read.h \
+ /home/techgarage/Arduino/libraries/Encoder/utility/interrupt_pins.h
