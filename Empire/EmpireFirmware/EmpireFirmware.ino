@@ -89,6 +89,8 @@ uint8_t checksum2 = 0;
 #define CMD_PID_CONSTANTS 29
 #define CMD_ZERO_ENCODER 30
 #define CMD_SET_TPR 23
+#define CMD_SUCCESS 91
+#define CMD_FAIL 90
 
 
 
@@ -310,9 +312,9 @@ void response_packet(bool success, int controller_id, int data_len = 0) {
   resp_buff[0] = 255; // header
   resp_buff[1] = controller_id; // controller id
   if(success) { // command byte used to signal success or fail
-    resp_buff[2] = 1; 
+    resp_buff[2] = CMD_SUCCESS; 
   } else {
-    resp_buff[2] = 0;
+    resp_buff[2] = CMD_FAIL;
   }
   resp_buff[3] = data_len; // data length
 
