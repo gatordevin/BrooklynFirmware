@@ -398,20 +398,24 @@ void clear_data() {
   }
 }
 
-void response_packet(bool success, int controller_id, int data_len = 0) {
+void response_packet(bool success, int destination_id, int data_len = 0) {
   resp_buff[0] = 255; // header
-  resp_buff[1] = controller_id; // controller id
+  resp_buff[1] = spi_recv_buff[2]; // destination id
+  resp_buff[2] = spi_recv_buff[1]; //sender id
   if(success) { // command byte used to signal success or fail
-    resp_buff[2] = CMD_SUCCESS; 
+    resp_buff[3] = CMD_SUCCESS; 
   } else {
-    resp_buff[2] = CMD_FAIL;
+    resp_buff[3] = CMD_FAIL;
   }
-  resp_buff[3] = data_len; // data length
+  resp_buff[4] = data_len; // data length
 
   for(int i = 0; i < data_len; i++) {
-    resp_buff[i+4] = data_array[i];
+    resp_buff[i+5] = data_array[i];
     data_array[i] = 0;
   }
+
+  resp_buff[5+data_len] = spi_recv_buff[spi_recv_buff[4]+5];
+  resp_buff[6+data_len] = spi_recv_buff[spi_recv_buff4]+6];
 }
 
 void create_id(int num){
