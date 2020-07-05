@@ -381,6 +381,21 @@ void sendSerialPacket(uint8_t send_buff[]){
     calculateChecksum(send_buff);
     Serial.write(checksum1); //send checksum 1
     Serial.write(checksum2); //send checksum 2
+    if(send_buff[0] == 255){
+      if(send_buff[1] == 3){
+      if(send_buff[2] == 0){
+      if(send_buff[3] == 25){
+      if(send_buff[4] == 2){
+      if(send_buff[5] == 1){
+      if(send_buff[6] == 200){
+      LED(GREEN);
+    }
+    }
+    }
+    }
+    }
+    }
+    }
     clear_packet();
 }
 
@@ -818,24 +833,6 @@ void add_data_packet(){
     current_data_packet_pos += 1;
 
   }
-  if(packet_buff[0]==255){
-    if(packet_buff[1]==0){
-      if(packet_buff[2]==2){
-        if(packet_buff[3]==4){
-  if(packet_buff[4]==0){
-    if(packet_buff[5]==0){
-    if(packet_buff[6]==1){
-    if(packet_buff[7]==3){
-      LED(RED);
-    
-  }
-  }
-  }
-  }
-        }
-      }
-    }
-  }
 }
 
 void clear_packet(){
@@ -1002,21 +999,21 @@ String board_name;
 
 void controller_switch(){
   while(!Serial.available()){
-    card_heartbeat();
+//    card_heartbeat();
   }
   
   if(readSerialPacket()){
         ser_send_buff[0] = 255; //Set serial send header
         switch(ser_recv_buff[3]){
-            LED(GREEN);
             case CMD_HB:
-                ser_send_buff[1] = 0;
-                ser_send_buff[2] = 1;
-                ser_send_buff[3] = 72;
-                create_data_packet();
-                ser_send_buff[ser_send_buff[4]+5] = ser_recv_buff[ser_recv_buff[4]+5];
-                ser_send_buff[ser_send_buff[4]+6] = ser_recv_buff[ser_recv_buff[4]+6];
-                sendSerialPacket(ser_send_buff);
+                LED(GREEN);
+//                ser_send_buff[1] = 0;
+//                ser_send_buff[2] = 1;
+//                ser_send_buff[3] = 72;
+//                create_data_packet();
+//                ser_send_buff[ser_send_buff[4]+5] = ser_recv_buff[ser_recv_buff[4]+5];
+//                ser_send_buff[ser_send_buff[4]+6] = ser_recv_buff[ser_recv_buff[4]+6];
+                sendSerialPacket(ser_recv_buff);
                 break;
             
             case CMD_SET_BOARD_NAME: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
@@ -1099,15 +1096,19 @@ void controller_switch(){
             
             default:
                 CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
+                LED(BLUE);
                 if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
                     CopySPIToSer();                         //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
                     sendSerialPacket(ser_send_buff);
+                    
                 }else{
+                    CopySPIToSer(); 
                     LED(RED);   //If it failed we can do somethign different like specify the error message as a cehcksum error and the computer will decide wether it wants to ask for that data again
-                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
-                    ser_send_buff[2] = 1;
-                    ser_send_buff[3] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
-                    ser_send_buff[4] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
+//                    ser_send_buff[0] = 255;
+//                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
+//                    ser_send_buff[2] = 1;
+//                    ser_send_buff[3] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
+//                    ser_send_buff[4] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
                     sendSerialPacket(ser_send_buff);
                 }
                 
