@@ -38,6 +38,7 @@
 
 #include "Arduino.h"
 #include <EEPROM.h>
+#include <avr/wdt.h>
 //#undef SERIAL
 
 
@@ -262,6 +263,39 @@ uint8_t checksum1 = 0;
 uint8_t checksum2 = 0;
 uint8_t current_data_packet_pos = 0;
 
+void watchdog_setup(void) {
+  cli();
+  wdt_reset();
+
+  /*
+    WDTCSR configuration:
+    WDIE = 1: Interrupt Enable
+    WDE = 1 :Reset Enable
+    See table for time-out variations:
+    WDP3 = 0 :For 250ms Time-out
+    WDP2 = 1 :For 250ms Time-out
+    WDP1 = 0 :For 250ms Time-out
+    WDP0 = 0 :For 250ms Time-out
+  */
+
+  // Enter Watchdog Configuration mode:
+  WDTCSR |= (1<<WDCE) | (1<<WDE);
+  // Set Watchdog settings:
+  WDTCSR = (1<<WDIE) | (1<<WDE) |
+  (0<<WDP3) | (1<<WDP2) | (0<<WDP1) |
+  (0<<WDP0);
+
+  sei();
+}
+
+ISR(WDT_vect) // Watchdog timer interrupt.
+{
+  // Include your code here - be careful not to use functions they may cause the interrupt to hang and
+  // prevent a reset.
+  // Reset the empire boards in here.
+  end_cmode();
+}
+
 void setup() {
   SERIAL.begin(1000000);
   pinMode(red_pin, OUTPUT);
@@ -272,6 +306,7 @@ void setup() {
         pinMode(ss[i], OUTPUT);
         digitalWrite(ss[i], HIGH);
     }
+  watchdog_setup();
 }
 
 int error = 0;
@@ -342,6 +377,11 @@ void loop(void) {
       controller_switch();
       break;
   }
+  wdt_reset();
+}
+
+ISR(WDT_vect) {
+  // Reset empire boards here
 }
 
 bool readSerialPacket(){
@@ -381,21 +421,6 @@ void sendSerialPacket(uint8_t send_buff[]){
     calculateChecksum(send_buff);
     Serial.write(checksum1); //send checksum 1
     Serial.write(checksum2); //send checksum 2
-    if(send_buff[0] == 255){
-      if(send_buff[1] == 3){
-      if(send_buff[2] == 0){
-      if(send_buff[3] == 25){
-      if(send_buff[4] == 2){
-      if(send_buff[5] == 1){
-      if(send_buff[6] == 200){
-      LED(GREEN);
-    }
-    }
-    }
-    }
-    }
-    }
-    }
     clear_packet();
 }
 
