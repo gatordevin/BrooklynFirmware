@@ -380,6 +380,10 @@ void loop(void) {
   wdt_reset();
 }
 
+ISR(WDT_vect) {
+  // Reset empire boards here
+}
+
 bool readSerialPacket(){
     ser_recv_buff[0] = 0;
     while(ser_recv_buff[0] != 255){
