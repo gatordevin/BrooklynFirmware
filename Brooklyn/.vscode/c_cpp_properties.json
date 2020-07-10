@@ -3,11 +3,15 @@
         {
             "name": "Linux",
             "includePath": [
-                "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/tools/**",
-                "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/**"
+                "/snap/arduino/41/tools/**",
+                "/snap/arduino/41/hardware/arduino/avr/***",
+                "/snap/arduino/41/hardware/arduino/avr/***",
+                "/snap/arduino/41/tools/**",
+                "/home/techgarage/snap/arduino/41/Arduino/libraries/**"
             ],
             "forcedInclude": [
-                "/home/techgarage/Downloads/arduino-1.8.12-linux64/arduino-1.8.12/hardware/arduino/avr/cores/arduino/Arduino.h"
+                "/snap/arduino/41/hardware/arduino/avr/cores/arduino/Arduino.h",
+                "/snap/arduino/41/hardware/arduino/avr/cores/arduino/Arduino.h"
             ],
             "intelliSenseMode": "gcc-x64",
             "compilerPath": "/usr/bin/gcc",
