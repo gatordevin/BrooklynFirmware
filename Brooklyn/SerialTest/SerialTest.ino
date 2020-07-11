@@ -64,8 +64,18 @@ void loop(){
 void controller_switch(packet msg){
     switch(msg.command){
         case 78:
-            computer.send_metrics(0);
+            {
+                float result = computer.read_float();
+                unsigned int result_2 = computer.read_unsigned_int();
+                short result_3 = computer.read_short();
+                long long result_4 = computer.read_long_long();
+                if(result_4 == -4446744073709551615){
+                    LED(RED);
+                }
+                computer.send_metrics(0);
+            }
             break;
+        
         case 160:
             LED(RED);
             computer.send_byte(160, 0);
