@@ -1,14 +1,92 @@
 #include <BrooklynSerialComms.h>
+#define RED 1
+#define BLUE 2
+#define GREEN 3
+#define OFF 4
 
-BrooklynSerialComms computer = BrooklynSerialComms(9600);
+#define red_pin 7
+#define blue_pin 11
+#define green_pin A5
 
+BrooklynSerialComms computer = BrooklynSerialComms(9600, 250);
+int mode = 0;
+
+void LED(uint8_t color){
+    switch (color){
+        case RED:
+            digitalWrite(red_pin, LOW);
+            digitalWrite(blue_pin, HIGH);
+            digitalWrite(green_pin, HIGH);
+            break;
+        case BLUE:
+            digitalWrite(red_pin, HIGH);
+            digitalWrite(blue_pin, LOW);
+            digitalWrite(green_pin, HIGH);
+            break;
+        case GREEN:
+            digitalWrite(red_pin, HIGH);
+            digitalWrite(blue_pin, HIGH);
+            digitalWrite(green_pin, LOW);
+            break;
+        case OFF:
+            digitalWrite(red_pin, HIGH);
+            digitalWrite(blue_pin, HIGH);
+            digitalWrite(green_pin, HIGH);
+            break;
+    }
+}
 
 void setup(){
+    pinMode(red_pin, OUTPUT);
+    pinMode(blue_pin, OUTPUT);
+    pinMode(green_pin, OUTPUT);
+    LED(OFF);
     computer.begin();
 }
 
 void loop(){
-    computer.send_packet.data_len = 1;
-    computer.send_packet.data = 12;
-    computer.send();
+    switch(mode){
+        case 0:
+            LED(BLUE);
+            mode = computer.check_for_conn(140);
+            break;
+
+        case 140:
+            LED(GREEN);
+            computer.check_for_data(&controller_switch, &background_func, &reset_board);
+            break;
+
+        case 120:
+            break;
+    }
+}
+
+void controller_switch(packet msg){
+    switch(msg.command){
+        case 78:
+            computer.send_metrics(0);
+            break;
+        case 160:
+            LED(RED);
+            computer.send_byte(160, 0);
+            break;
+
+        case 140:
+            computer.send_byte(140, 0);
+            computer.close(&reset_board);
+            break;
+    }
+    
+}
+
+void background_func(){
+    
+}
+
+void programmer_switch(){
+    
+}
+
+void reset_board(){
+    mode = 0;
 }
