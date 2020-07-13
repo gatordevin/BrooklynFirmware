@@ -1,4 +1,4 @@
-#include "Comms.h"
+#include "SerialComms.h"
 #define RED 1
 #define BLUE 2
 #define GREEN 3
@@ -8,7 +8,7 @@
 #define blue_pin 11
 #define green_pin A5
 
-Comms computer = Comms(9600, 250);
+SerialComms computer = SerialComms(9600, 250);
 int mode = 0;
 
 void LED(uint8_t color){
@@ -79,7 +79,6 @@ void controller_switch(packet msg){
             break;
 
         case 140:
-            computer.send_byte(140, 0);
             computer.close(&reset_board);
             break;
     }
