@@ -1,4 +1,4 @@
-#include <BrooklynSerialComms.h>
+#include "Comms.h"
 #define RED 1
 #define BLUE 2
 #define GREEN 3
@@ -8,7 +8,7 @@
 #define blue_pin 11
 #define green_pin A5
 
-BrooklynSerialComms computer = BrooklynSerialComms(9600, 250);
+Comms computer = Comms(9600, 250);
 int mode = 0;
 
 void LED(uint8_t color){
@@ -76,7 +76,6 @@ void controller_switch(packet msg){
         
         case 160:
             LED(RED);
-            computer.send_byte(160, 0);
             break;
 
         case 140:
