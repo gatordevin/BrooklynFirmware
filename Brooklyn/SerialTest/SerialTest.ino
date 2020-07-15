@@ -1,4 +1,7 @@
 #include "SerialComms.h"
+#include "SPIMaster.h"
+#include <SPI.h>
+
 #define RED 1
 #define BLUE 2
 #define GREEN 3
@@ -9,6 +12,7 @@
 #define green_pin A5
 
 SerialComms computer = SerialComms(9600, 250);
+SPIMaster spi_bus = SPIMaster();
 int mode = 0;
 
 void LED(uint8_t color){
@@ -41,7 +45,12 @@ void setup(){
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
     LED(OFF);
+    pinMode(A0, OUTPUT);
+    digitalWrite(A0, HIGH);
     computer.begin();
+    spi_bus.begin();
+    LED(BLUE);
+    
 }
 
 void loop(){
@@ -52,7 +61,7 @@ void loop(){
             break;
 
         case 140:
-            LED(GREEN);
+            // LED(GREEN);
             computer.check_for_data(&controller_switch, &background_func, &reset_board);
             break;
 
@@ -61,15 +70,20 @@ void loop(){
     }
 }
 
-void controller_switch(packet msg){
-    switch(msg.command){
-        case 78:
+void controller_switch(){
+    switch(computer.recv_packet.command){
+        case 7:
             {
                 float result = computer.read_float();
                 unsigned long result_2 = computer.read_unsigned_int();
                 short result_3 = computer.read_short();
                 long long result_4 = computer.read_long_long();
-                computer.add((float) 200.345);
+
+                spi_bus.copy_packet_data(computer.recv_packet);
+                spi_bus.send(A0);
+                spi_bus.read_full_packet(A0);
+                
+                computer.copy_packet_data(spi_bus.recv_packet);
                 computer.send(0);
             }
             break;

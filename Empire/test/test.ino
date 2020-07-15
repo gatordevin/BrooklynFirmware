@@ -1,4 +1,4 @@
-#include <SPI.h>
+#include "SPISlave.h"
 
 #define RED 1
 #define BLUE 2
@@ -9,7 +9,7 @@
 #define blue_pin A2
 #define green_pin A3
 
-uint8_t resp;
+SPISlave spi_bus = SPISlave();
 
 void LED(uint8_t color){
     switch (color){
@@ -38,23 +38,35 @@ void LED(uint8_t color){
 
 ISR (SPI_STC_vect)
 {
-    resp = SPDR;
-    LED(BLUE);
+    spi_bus.update_data(SPDR);
 }
 
 void setup(){
     pinMode(red_pin, OUTPUT);
     pinMode(blue_pin, OUTPUT);
     pinMode(green_pin, OUTPUT);
-    pinMode(MISO,OUTPUT);
-    SPCR |= _BV(SPE);
-    SPCR &= ~(_BV(MSTR)); //Arduino is Slave
-    SPDR = 0x67;  //test value
-    SPCR |= _BV(SPIE);      //we not using SPI.attachInterrupt() why?
-    sei();
+    spi_bus.begin();
     LED(RED);
 }
 
 void loop(void){
+    spi_bus.check_for_data(&controller_switch, &background_func);
+}
+
+void controller_switch(){
+    switch(spi_bus.recv_packet.command){
+        case 7:
+            float result = spi_bus.read_float();
+            if(result==-121.567){
+                LED(GREEN);
+            }
+            spi_bus.add((short) 19);
+            spi_bus.send(0);
+            break;
+    }
     
+}
+
+void background_func(){
+
 }

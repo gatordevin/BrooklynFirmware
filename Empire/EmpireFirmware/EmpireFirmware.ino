@@ -175,6 +175,9 @@ void LED(uint8_t color){
 
 ISR (SPI_STC_vect)
 {
+    if(interrupt_buff[idx]==140){
+      LED(GREEN);
+    }
     interrupt_buff[idx] = SPDR;
     if(idx==99){
         idx=0;

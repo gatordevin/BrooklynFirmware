@@ -166,9 +166,8 @@ void CommsAbstract::clear_packet_data(packet packet_to_clear){
     memset(packet_to_clear.data, 0, sizeof(packet_to_clear.data));
 }
 
-void CommsAbstract::copy_packet_data(packet copy_from){
-    memcpy(&send_packet, &copy_from, sizeof(packet));
-    _send_starting_pos = copy_from.data_length;
+void CommsAbstract::copy_packet_data(packet copy_from, packet copy_to){
+    memcpy(&copy_from, &copy_to, sizeof(packet));
 }
 
 signed long CommsAbstract::calc_checksum(packet data_packet){

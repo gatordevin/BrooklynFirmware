@@ -37,7 +37,7 @@
 //
 
 #include "Arduino.h"
-//#undef SERIAL
+#undef SERIAL
 
 
 #define PROG_FLICKER true
@@ -50,7 +50,7 @@
 //
 // A clock slow enough for an ATtiny85 @ 1 MHz, is a reasonable default:
 
-#define SPI_CLOCK 		(1000000/6)
+#define SPI_CLOCK 		(1000000/8)
 
 
 // Select hardware or software SPI, depending on SPI clock.
@@ -59,16 +59,21 @@
 
 #if defined(ARDUINO_ARCH_AVR)
 
-
-
-#endif
 #if SPI_CLOCK > (F_CPU / 128)
 #define USE_HARDWARE_SPI
 #endif
+
+#endif
+
 // Configure which pins to use:
 
 // The standard pin configuration.
 #ifndef ARDUINO_HOODLOADER2
+
+#define RESET     A3 // Use pin 10 to reset the target rather than SS
+#define LED_HB    9
+#define LED_ERR   8
+#define LED_PMODE 7
 
 // Uncomment following line to use the old Uno style wiring
 // (using pin 11, 12 and 13 instead of the SPI header) on Leonardo, Due...
@@ -87,7 +92,10 @@
 // on Uno or Mega boards. We must use pins that are broken out:
 #else
 
-#define RESET     	4
+#define RESET     	A2
+#define LED_HB    	7
+#define LED_ERR   	6
+#define LED_PMODE 	5
 
 #endif
 
@@ -103,18 +111,6 @@
 #ifndef PIN_SCK
 #define PIN_SCK 	SCK
 #endif
-
-#define RED 1
-#define BLUE 2
-#define GREEN 3
-#define OFF 4
-
-#define PROGRAMMER 1
-#define CONTROLLER 2
-
-#define red_pin 7
-#define blue_pin 11
-#define green_pin A5
 
 // Force bitbanged SPI if not using the hardware SPI pins:
 #if (PIN_MISO != MISO) ||  (PIN_MOSI != MOSI) || (PIN_SCK != SCK)
@@ -134,12 +130,12 @@
 // On the Due and Zero, 'Serial' can be used too, provided you disable autoreset.
 // To use 'Serial': #define SERIAL Serial
 
-// #ifdef SERIAL_PORT_USBVIRTUAL
-// #define SERIAL SERIAL_PORT_USBVIRTUAL
-// #else
-// #define SERIAL Serial
-// #endif
+#ifdef SERIAL_PORT_USBVIRTUAL
+#define SERIAL SERIAL_PORT_USBVIRTUAL
+#else
 #define SERIAL Serial
+#endif
+
 
 // Configure the baud rate:
 
@@ -164,10 +160,9 @@ void pulse(int pin, int times);
 
 #ifdef USE_HARDWARE_SPI
 #include "SPI.h"
-#define SPI_MODE0 0x00
 #else
 
-
+#define SPI_MODE0 0x00
 
 class SPISettings {
   public:
@@ -217,58 +212,20 @@ class BitBangedSPI {
     unsigned long pulseWidth; // in microseconds
 };
 
-static BitBangedSPI SPIbit;
+static BitBangedSPI SPI;
 
 #endif
 
-
-void LED(uint8_t color){
-    switch (color){
-        case RED:
-            digitalWrite(red_pin, LOW);
-            digitalWrite(blue_pin, HIGH);
-            digitalWrite(green_pin, HIGH);
-            break;
-        case BLUE:
-            digitalWrite(red_pin, HIGH);
-            digitalWrite(blue_pin, LOW);
-            digitalWrite(green_pin, HIGH);
-            break;
-        case GREEN:
-            digitalWrite(red_pin, HIGH);
-            digitalWrite(blue_pin, HIGH);
-            digitalWrite(green_pin, LOW);
-            break;
-        case OFF:
-            digitalWrite(red_pin, HIGH);
-            digitalWrite(blue_pin, HIGH);
-            digitalWrite(green_pin, HIGH);
-            break;
-    }
-}
-
-uint8_t reset_pins[] = {A2, A3, 3, 2, 13, 5, 8, 6};
-uint8_t ss[] = {A0, A1, 0, 1, 10, 9, 12, 4};
-uint8_t RESET = 0;
-
-uint8_t ser_recv_buff[20];
-uint8_t ser_send_buff[20];
-uint8_t spi_recv_buff[20];
-uint8_t spi_send_buff[20];
-
-uint8_t checksum1 = 0;
-uint8_t checksum2 = 0;
-
 void setup() {
-  SERIAL.begin(1000000);
-  pinMode(red_pin, OUTPUT);
-  pinMode(blue_pin, OUTPUT);
-  pinMode(green_pin, OUTPUT);
-  LED(BLUE);
-  for(int i=0;i<8;i++){
-        pinMode(ss[i], OUTPUT);
-        digitalWrite(ss[i], HIGH);
-    }
+  SERIAL.begin(BAUDRATE);
+
+  pinMode(LED_PMODE, OUTPUT);
+  pulse(LED_PMODE, 2);
+  pinMode(LED_ERR, OUTPUT);
+  pulse(LED_ERR, 2);
+  pinMode(LED_HB, OUTPUT);
+  pulse(LED_HB, 2);
+
 }
 
 int error = 0;
@@ -300,164 +257,48 @@ parameter param;
 // this provides a heartbeat on pin 9, so you can tell the software is running.
 uint8_t hbval = 128;
 int8_t hbdelta = 8;
+void heartbeat() {
+  static unsigned long last_time = 0;
+  unsigned long now = millis();
+  if ((now - last_time) < 40)
+    return;
+  last_time = now;
+  if (hbval > 192) hbdelta = -hbdelta;
+  if (hbval < 32) hbdelta = -hbdelta;
+  hbval += hbdelta;
+  analogWrite(LED_HB, hbval);
+}
 
 static bool rst_active_high;
 
 void reset_target(bool reset) {
   digitalWrite(RESET, ((reset && rst_active_high) || (!reset && !rst_active_high)) ? HIGH : LOW);
 }
-uint8_t resp = 0;
-uint8_t mode = 0;
+
 void loop(void) {
-  if(mode == 0){
-    LED(BLUE);
-    switch(getch()){
-      case 120:
-        resp = getch();
-        RESET = reset_pins[resp];
-        mode = PROGRAMMER;
-        LED(RED);
-        break;
-      case 140:
-        start_cmode();
-        mode = CONTROLLER;
-        LED(GREEN);
-        break;
-      case '0':
-        RESET = reset_pins[0];
-        mode = PROGRAMMER;
-        LED(RED);
-        break;
-    }
+  // is pmode active?
+  if (pmode) {
+    digitalWrite(LED_PMODE, HIGH);
+  } else {
+    digitalWrite(LED_PMODE, LOW);
   }
-  switch(mode){
-    case PROGRAMMER:
-      avrisp();
-      break;
-    case CONTROLLER:
-      controller_switch();
-      break;
+  // is there an error?
+  if (error) {
+    digitalWrite(LED_ERR, HIGH);
+  } else {
+    digitalWrite(LED_ERR, LOW);
   }
-}
 
-bool readSerialPacket(){
-    ser_recv_buff[0] = 0;
-    while(ser_recv_buff[0] != 255){
-        ser_recv_buff[0] = readByte(); //header 255
-        if(ser_recv_buff[0]==170){
-          return false;
-        }
-    }
-    ser_recv_buff[1] = readByte(); //controller ID
-    ser_recv_buff[2] = readByte(); //controller command
-    ser_recv_buff[3] = readByte(); //data length
-    for(int i=0;i<ser_recv_buff[3];i++){
-        ser_recv_buff[i+4] = readByte(); //data bytes
-    }
-    ser_recv_buff[ser_recv_buff[3]+4] = readByte(); //checksum 1
-    ser_recv_buff[ser_recv_buff[3]+5] = readByte(); //checksum 2
-    
-    return(verifyChecksum(ser_recv_buff)); //return whether data was received succesfully
-}
-
-void sendSerialPacket(uint8_t send_buff[]){
-    Serial.write(send_buff[0]); //send header 255
-    Serial.write(send_buff[1]); //send ID
-    Serial.write(send_buff[2]); //send command
-    Serial.write(send_buff[3]); //send data length
-    for(int i=0;i<send_buff[3];i++){
-        Serial.write(send_buff[i+4]); //send data bytes
-    }
-    calculateChecksum(send_buff);
-    Serial.write(checksum1); //send checksum 1
-    Serial.write(checksum2); //send checksum 2
-}
-
-uint8_t readByte(){
-  while(!Serial.available()){} //wait until serial avaiable
-  uint8_t data = Serial.read(); //read byte
-  return(data);
-}
-
-void CopySerToSPI(){
-    for(int i=0;i<20;i++){
-        spi_send_buff[i] = ser_recv_buff[i]; //copy data
-    }
-}
-
-void CopySPIToSer(){
-    for(int i=0;i<20;i++){
-        ser_send_buff[i] = spi_recv_buff[i]; //copy data
-    }
-}
-
-uint8_t SPISend(uint8_t SSpin, uint8_t data){
-    digitalWrite(SSpin, LOW);
-    uint8_t resp = SPI.transfer(data);
-    digitalWrite(SSpin, HIGH);
-    delayMicroseconds(100);
-    return resp;
-}
-
-bool SPISendPacket(uint8_t SSpin){
-    SPISend(SSpin,spi_send_buff[0]); //Header
-    SPISend(SSpin,spi_send_buff[1]); //ID
-    SPISend(SSpin,spi_send_buff[2]); //Command
-    SPISend(SSpin,spi_send_buff[3]); //Data Length
-    for(int i=0;i<spi_send_buff[3];i++){
-        SPISend(SSpin,spi_send_buff[4+i]);
-    }
-    calculateChecksum(spi_send_buff);
-    SPISend(SSpin, checksum1);
-    SPISend(SSpin, checksum2);
-
-    return(SPIRecvPacket(SSpin));
-}
-
-bool SPIRecvPacket(uint8_t SSpin){
-    delayMicroseconds(300);
-    spi_recv_buff[0] = SPISend(SSpin,0); //read header
-    spi_recv_buff[1] = SPISend(SSpin,0); //read id
-    spi_recv_buff[2] = SPISend(SSpin,0); //read cmd
-    spi_recv_buff[3] = SPISend(SSpin,0); //read data length
-    for(int i=0;i<spi_recv_buff[3];i++){
-        spi_recv_buff[4+i] = SPISend(SSpin,0); //read data
-    }
-    spi_recv_buff[spi_recv_buff[3]+4] = SPISend(SSpin,0);
-    spi_recv_buff[spi_recv_buff[3]+5] = SPISend(SSpin,0);
-
-    if(verifyChecksum(spi_recv_buff)==true){
-        return true;
-    }
-    return false;
-}
-
-bool verifyChecksum(uint8_t recv_buff[]){
-    calculateChecksum(recv_buff);
-    if(checksum1 == recv_buff[recv_buff[3]+4]){ //compare with checksum one
-        if(checksum2 == recv_buff[recv_buff[3]+5]){ //compare with checksum two
-            return true; //return true if checksums validate
-        }
-    }
-    return false; //return false if either checksum fails
-}
-
-void calculateChecksum(uint8_t data_buff[]){
-    int packetSum = 0;
-    packetSum += data_buff[0]; //add header to checksum
-    packetSum += data_buff[1]; //add controller id to checksum
-    packetSum += data_buff[2]; //add controller command to checksum
-    packetSum += data_buff[3]; //add data length to checksum
-    for(int i=0;i<data_buff[3];i++){
-        packetSum += data_buff[i+4]; //add data bytes to checksum
-    }
-    checksum1 = floor(packetSum / 256);
-    checksum2 = packetSum % 256;
+  // light the heartbeat LED
+  heartbeat();
+  if (SERIAL.available()) {
+    avrisp();
+  }
 }
 
 uint8_t getch() {
-  while (!Serial.available());
-  return Serial.read();
+  while (!SERIAL.available());
+  return SERIAL.read();
 }
 void fill(int n) {
   for (int x = 0; x < n; x++) {
@@ -475,6 +316,11 @@ void pulse(int pin, int times) {
   } while (times--);
 }
 
+void prog_lamp(int state) {
+  if (PROG_FLICKER) {
+    digitalWrite(LED_PMODE, state);
+  }
+}
 
 uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
   SPI.transfer(a);
@@ -485,22 +331,22 @@ uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
 
 void empty_reply() {
   if (CRC_EOP == getch()) {
-    Serial.print((char)STK_INSYNC);
-    Serial.print((char)STK_OK);
+    SERIAL.print((char)STK_INSYNC);
+    SERIAL.print((char)STK_OK);
   } else {
     error++;
-    Serial.print((char)STK_NOSYNC);
+    SERIAL.print((char)STK_NOSYNC);
   }
 }
 
 void breply(uint8_t b) {
   if (CRC_EOP == getch()) {
-    Serial.print((char)STK_INSYNC);
-    Serial.print((char)b);
-    Serial.print((char)STK_OK);
+    SERIAL.print((char)STK_INSYNC);
+    SERIAL.print((char)b);
+    SERIAL.print((char)STK_OK);
   } else {
     error++;
-    Serial.print((char)STK_NOSYNC);
+    SERIAL.print((char)STK_NOSYNC);
   }
 }
 
@@ -580,26 +426,16 @@ void start_pmode() {
   pmode = 1;
 }
 
-void start_cmode(){
-  pinMode(MOSI, OUTPUT);
-  SPI.begin();
-  SPI.setClockDivider(SPI_CLOCK);
-}
 void end_pmode() {
   SPI.end();
   // We're about to take the target out of reset so configure SPI pins as input
-  // pinMode(MOSI, INPUT);
+  pinMode(PIN_MOSI, INPUT);
+  pinMode(PIN_SCK, INPUT);
   reset_target(false);
   pinMode(RESET, INPUT);
   pmode = 0;
-  RESET = 0;
-  mode = 0;
 }
 
-void end_cmode(){
-  SPI.end();
-  mode = 0;
-}
 void universal() {
   uint8_t ch;
 
@@ -616,10 +452,12 @@ void flash(uint8_t hilo, unsigned int addr, uint8_t data) {
 }
 void commit(unsigned int addr) {
   if (PROG_FLICKER) {
+    prog_lamp(LOW);
   }
   spi_transaction(0x4C, (addr >> 8) & 0xFF, addr & 0xFF, 0);
   if (PROG_FLICKER) {
     delay(PTIME);
+    prog_lamp(HIGH);
   }
 }
 
@@ -643,11 +481,11 @@ unsigned int current_page() {
 void write_flash(int length) {
   fill(length);
   if (CRC_EOP == getch()) {
-    Serial.print((char) STK_INSYNC);
-    Serial.print((char) write_flash_pages(length));
+    SERIAL.print((char) STK_INSYNC);
+    SERIAL.print((char) write_flash_pages(length));
   } else {
     error++;
-    Serial.print((char) STK_NOSYNC);
+    SERIAL.print((char) STK_NOSYNC);
   }
 }
 
@@ -690,11 +528,13 @@ uint8_t write_eeprom(unsigned int length) {
 uint8_t write_eeprom_chunk(unsigned int start, unsigned int length) {
   // this writes byte-by-byte, page writing may be faster (4 bytes at a time)
   fill(length);
+  prog_lamp(LOW);
   for (unsigned int x = 0; x < length; x++) {
     unsigned int addr = start + x;
     spi_transaction(0xC0, (addr >> 8) & 0xFF, addr & 0xFF, buff[x]);
     delay(45);
   }
+  prog_lamp(HIGH);
   return STK_OK;
 }
 
@@ -711,15 +551,15 @@ void program_page() {
   if (memtype == 'E') {
     result = (char)write_eeprom(length);
     if (CRC_EOP == getch()) {
-      Serial.print((char) STK_INSYNC);
-      Serial.print(result);
+      SERIAL.print((char) STK_INSYNC);
+      SERIAL.print(result);
     } else {
       error++;
-      Serial.print((char) STK_NOSYNC);
+      SERIAL.print((char) STK_NOSYNC);
     }
     return;
   }
-  Serial.print((char)STK_FAILED);
+  SERIAL.print((char)STK_FAILED);
   return;
 }
 
@@ -733,9 +573,9 @@ uint8_t flash_read(uint8_t hilo, unsigned int addr) {
 char flash_read_page(int length) {
   for (int x = 0; x < length; x += 2) {
     uint8_t low = flash_read(LOW, here);
-    Serial.print((char) low);
+    SERIAL.print((char) low);
     uint8_t high = flash_read(HIGH, here);
-    Serial.print((char) high);
+    SERIAL.print((char) high);
     here++;
   }
   return STK_OK;
@@ -747,7 +587,7 @@ char eeprom_read_page(int length) {
   for (int x = 0; x < length; x++) {
     int addr = start + x;
     uint8_t ee = spi_transaction(0xA0, (addr >> 8) & 0xFF, addr & 0xFF, 0xFF);
-    Serial.print((char) ee);
+    SERIAL.print((char) ee);
   }
   return STK_OK;
 }
@@ -759,29 +599,29 @@ void read_page() {
   char memtype = getch();
   if (CRC_EOP != getch()) {
     error++;
-    Serial.print((char) STK_NOSYNC);
+    SERIAL.print((char) STK_NOSYNC);
     return;
   }
-  Serial.print((char) STK_INSYNC);
+  SERIAL.print((char) STK_INSYNC);
   if (memtype == 'F') result = flash_read_page(length);
   if (memtype == 'E') result = eeprom_read_page(length);
-  Serial.print(result);
+  SERIAL.print(result);
 }
 
 void read_signature() {
   if (CRC_EOP != getch()) {
     error++;
-    Serial.print((char) STK_NOSYNC);
+    SERIAL.print((char) STK_NOSYNC);
     return;
   }
-  Serial.print((char) STK_INSYNC);
+  SERIAL.print((char) STK_INSYNC);
   uint8_t high = spi_transaction(0x30, 0x00, 0x00, 0x00);
-  Serial.print((char) high);
+  SERIAL.print((char) high);
   uint8_t middle = spi_transaction(0x30, 0x00, 0x01, 0x00);
-  Serial.print((char) middle);
+  SERIAL.print((char) middle);
   uint8_t low = spi_transaction(0x30, 0x00, 0x02, 0x00);
-  Serial.print((char) low);
-  Serial.print((char) STK_OK);
+  SERIAL.print((char) low);
+  SERIAL.print((char) STK_OK);
 }
 //////////////////////////////////////////
 //////////////////////////////////////////
@@ -798,13 +638,13 @@ void avrisp() {
       break;
     case '1':
       if (getch() == CRC_EOP) {
-        Serial.print((char) STK_INSYNC);
-        Serial.print("AVR ISP");
-        Serial.print((char) STK_OK);
+        SERIAL.print((char) STK_INSYNC);
+        SERIAL.print("AVR ISP");
+        SERIAL.print((char) STK_OK);
       }
       else {
         error++;
-        Serial.print((char) STK_NOSYNC);
+        SERIAL.print((char) STK_NOSYNC);
       }
       break;
     case 'A':
@@ -865,67 +705,15 @@ void avrisp() {
     // this is how we can get back in sync
     case CRC_EOP:
       error++;
-      Serial.print((char) STK_NOSYNC);
+      SERIAL.print((char) STK_NOSYNC);
       break;
 
     // anything else we will return STK_UNKNOWN
     default:
       error++;
       if (CRC_EOP == getch())
-        Serial.print((char)STK_UNKNOWN);
+        SERIAL.print((char)STK_UNKNOWN);
       else
-        Serial.print((char)STK_NOSYNC);
+        SERIAL.print((char)STK_NOSYNC);
   }
-}
-
-#define CMD_HB 72
-#define CMD_GET_ENCODER 24
-#define CMD_SET_PWM 9
-
-void controller_switch(){
-  if(readSerialPacket()){
-        ser_send_buff[0] = 255; //Set serial send header
-        switch(ser_recv_buff[2]){
-            case CMD_HB:
-                ser_send_buff[1] = 0;
-                ser_send_buff[2] = 72;
-                ser_send_buff[3] = 0; 
-                sendSerialPacket(ser_send_buff);
-                break;
-            
-            case CMD_GET_ENCODER: //In the case of an encoder request we copy over the request from the computer to the spi and send it to
-                CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
-                if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
-                    CopySPIToSer();                         //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
-                    sendSerialPacket(ser_send_buff);
-                }else{
-                    LED(RED);   //If it failed we can do somethign different like specify the error message as a cehcksum error and the computer will decide wether it wants to ask for that data again
-                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
-                    ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
-                    ser_send_buff[3] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
-                    sendSerialPacket(ser_send_buff);
-                }
-                
-                break;
-            
-            default:
-                CopySerToSPI(); //the intended daughter card whcih was specificed in the packet
-                if(SPISendPacket(ss[ser_recv_buff[1]-2])){ //The if statement then verifiwes the data was transferred properly by checking the checksum
-                    CopySPIToSer();                         //If there was transfer success we can decide what to do which in this case is relay the information from the daugfhter card to the computer
-                    sendSerialPacket(ser_send_buff);
-                }else{
-                    LED(RED);   //If it failed we can do somethign different like specify the error message as a cehcksum error and the computer will decide wether it wants to ask for that data again
-                    ser_send_buff[1] = 0; //In the case of a checksum error we most likely would if its a different error such as encoder being out of range or somethign liek that we can solve it before asking again
-                    ser_send_buff[2] = 2; //You can manually set the send buffer by cahnging these three values which sepcifiy the destination the command and the length of data in the packet
-                    ser_send_buff[3] = 0; //Destiantion for computer is 0 destination for brooklyn is 1 and all empire cards are 2-10
-                    sendSerialPacket(ser_send_buff);
-                }
-                
-                break;
-        }
-    }else{
-        if(ser_recv_buff[0]==170){
-          end_cmode();
-        }
-    }
 }

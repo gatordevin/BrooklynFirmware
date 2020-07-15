@@ -56,6 +56,10 @@ void LED(uint8_t color){
 ISR (SPI_STC_vect)
 {
     buffer[idx] = SPDR;
+    LED(GREEN);
+    if(buffer[idx]==140){
+        
+    }
     SPDR=20;
     if(idx==99){
         idx=0;

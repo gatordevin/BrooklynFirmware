@@ -47,7 +47,7 @@ class CommsAbstract
         virtual void send_full_packet() = 0;
         virtual void close(void(*end_CommsAbstract_handler)()) = 0;
         virtual void send(byte destination_id) = 0;
-        void copy_packet_data(packet copy_from);
+        void copy_packet_data(packet copy_from, packet copy_to);
         void clear_packet_data(packet packet_to_clear);
         float read_float();
         unsigned long read_unsigned_int();
