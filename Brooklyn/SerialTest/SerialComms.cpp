@@ -24,11 +24,6 @@ void SerialComms::send_full_packet()
 }
 
 void SerialComms::send(byte destination_id){
-    send_packet.header = recv_packet.header;
-    send_packet.destination_id = destination_id;
-    send_packet.sender_id = recv_packet.sender_id;
-    send_packet.packet_id = recv_packet.packet_id;
-    send_packet.command = recv_packet.command;
     send_packet.data_length = _send_starting_pos;
     send_packet.checksum = calc_checksum(send_packet);
     send_full_packet();

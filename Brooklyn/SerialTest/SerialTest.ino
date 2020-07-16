@@ -82,9 +82,17 @@ void controller_switch(){
                 spi_bus.copy_packet_data(computer.recv_packet);
                 spi_bus.send(A0);
                 spi_bus.read_full_packet(A0);
-                
+
                 computer.copy_packet_data(spi_bus.recv_packet);
+                if(spi_bus.recv_packet.sender_id==2){
+                    LED(RED);
+                }
+                if(computer.send_packet.sender_id==2){
+                    LED(GREEN);
+                }
                 computer.send(0);
+
+                
             }
             break;
         

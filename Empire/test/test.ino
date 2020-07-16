@@ -57,11 +57,12 @@ void controller_switch(){
     switch(spi_bus.recv_packet.command){
         case 7:
             float result = spi_bus.read_float();
-            if(result==-121.567){
-                LED(GREEN);
-            }
+            
             spi_bus.add((short) 19);
             spi_bus.send(0);
+            if(spi_bus.send_packet.sender_id==2){
+                LED(GREEN);
+            }
             break;
     }
     
